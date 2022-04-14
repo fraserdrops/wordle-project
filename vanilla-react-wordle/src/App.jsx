@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import logo from "./logo.svg";
+import { useState, useEffect, useReducer } from "react";
 import "./App.css";
 import Grid from "./components/Grid";
 import HeaderBar from "./components/HeaderBar";
@@ -13,62 +12,216 @@ const isLetter = (keyValue) => {
   return keyValue.length === 1 && /[a-zA-Z]/.test(keyValue);
 };
 
+const initialState = {
+  finite: {
+    view: {
+      value: "game", // game | settings | stats
+    },
+    core: {
+      value: "guessing", //  guessing | checkingWord
+    },
+  },
+  extended: {
+    targetWord: "LIVER",
+    currentGuess: [],
+    guesses: [],
+    wordTooShort: false,
+  },
+};
+
+function reducer(state, event) {
+  // this sort of direct access to state is undesirable
+  // ideally it'd be getter/setter only
+  const { finite, extended } = state;
+  const { wordTooShort, currentGuess, targetWord, guesses } = state.extended;
+  switch (event.type) {
+    case "KEY_EVENT":
+      const { keyValue } = event;
+      const newExtendedState = { ...state.extended };
+      console.log("current guess", currentGuess);
+      if (wordTooShort) {
+        // do nothing while we are animating
+        return state;
+      }
+
+      if (keyValue === "Enter") {
+        console.log(currentGuess.length);
+        if (currentGuess.length === WORD_LENGTH) {
+          // submit
+          if (currentGuess.join("") === targetWord) {
+            // correct
+            newExtendedState.correct = true;
+          } else {
+            // incorrect
+            if (guesses.length + 1 === MAX_GUESSES) {
+              // game over
+            }
+          }
+
+          newExtendedState.guesses = [
+            ...newExtendedState.guesses,
+            currentGuess,
+          ];
+        } else {
+          // too short
+          newExtendedState.wordTooShort = true;
+
+          // how do I set this timeout here?
+          // setTimeout(() => {
+          //   setWordTooShort(false);
+          // }, 1000);
+        }
+      } else if (keyValue === "Delete") {
+        if (currentGuess.length > 0) {
+          let newGuess = [...newExtendedState.currentGuess];
+          newGuess = [...newGuess.splice(0, newGuess.length - 1)];
+          newExtendedState.currentGuess = newGuess;
+        }
+      } else if (isLetter(keyValue)) {
+        if (currentGuess.length < WORD_LENGTH) {
+          const newGuess = [
+            ...newExtendedState.currentGuess,
+            getKeyDisplayFromKeyValue(keyValue),
+          ];
+          newExtendedState.currentGuess = newGuess;
+        }
+      }
+      return { finite, extended: newExtendedState };
+    case "DISABLE_WORD_TOO_SHORT":
+      return { ...state, wordTooShort: "false" };
+    default:
+      throw new Error();
+  }
+}
+
+function model(state, event) {
+  switch (event.type) {
+    case "UPDATE_STATE": {
+      return event.newState;
+    }
+
+    default: {
+      return state;
+    }
+  }
+}
+
+// takes the current app state and the view event, and returns a domain event
+// view states:
+// - game
+//  - regular
+//  - wordToShort
+//  - revealing words
+// - settings
+// - info
+function viewController(state, viewEvent) {
+  const { finite, extended } = state;
+
+  let newState = { ...state };
+  let domainEvent = undefined;
+
+  switch (finite.view.value) {
+    case "game": {
+      switch (viewEvent.type) {
+        case "KEY_EVENT": {
+          if (viewEvent.keyValue === "Enter") {
+            domainEvent = { type: "SUBMIT_GUESS" };
+          } else if (viewEvent.keyValue === "Delete") {
+            domainEvent = { type: "DELETE_LETTER" };
+          } else {
+            domainEvent = {
+              type: "ADD_LETTER_TO_GUESS",
+              letter: viewEvent.keyValue,
+            };
+          }
+
+          break;
+        }
+
+        case "OPEN_SETTINGS": {
+          newState.finite.value = "settings";
+          break;
+        }
+        default: {
+        }
+      }
+      break;
+    }
+    case "wordTooShort": {
+      // block all user actions? or just key events?
+      // lets just block all actions for now
+      break;
+    }
+    default: {
+    }
+  }
+
+  return [newState, domainEvent];
+}
+
+// core states:
+// - game
+//  - regular
+//  - wordToShort
+//  - revealing words
+// - settings
+// - info
+function domainController(state, event) {
+  const { finite, extended } = state;
+
+  const { currentGuess } = extended;
+  const newState = { ...state };
+  switch (event.type) {
+    case "SUBMIT_GUESS": {
+      // too short?
+      // else check word'
+      // guess correct / incorrect
+      return;
+    }
+    case "DELETE_LETTER": {
+      let newGuess = [...newState.extended.currentGuess];
+      newGuess = [...newGuess.splice(0, newGuess.length - 1)];
+      newState.extended.currentGuess = newGuess;
+      break;
+    }
+    case "ADD_LETTER_TO_GUESS": {
+      if (currentGuess.length < WORD_LENGTH) {
+        const newGuess = [...newState.extended.currentGuess, event.letter];
+        newState.extended.currentGuess = newGuess;
+      }
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  return [newState];
+}
+
+const createController = (sendToModel) => (state, event) => {
+  const viewEvent = event;
+  console.log(viewEvent);
+  const [stateWithViewUpdates, domainEvent] = viewController(state, event);
+  console.log("DOMAIN EVENT", domainEvent);
+  console.log("stateWithViewUpdates", stateWithViewUpdates);
+  if (domainEvent) {
+    const [newState] = domainController(stateWithViewUpdates, domainEvent);
+    sendToModel({ type: "UPDATE_STATE", newState });
+  } else {
+    sendToModel({ type: "UPDATE_STATE" });
+  }
+};
+
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
 function App() {
-  const [targetWord] = useState("HEART");
-  const [count, setCount] = useState(0);
-  const [currentGuess, setCurrentGuess] = useState([]);
-  const [guesses, setGuesses] = useState([]);
-  const [wordTooShort, setWordTooShort] = useState(false);
-  const [revealing, setRevealing] = useState(false);
   const [correct, setCorrect] = useState(false);
-
+  const [modelState, modelSend] = useReducer(model, initialState);
+  const { currentGuess, guesses, wordTooShort } = modelState.extended;
+  const controller = createController(modelSend);
   const handleKeyPress = (keyValue) => {
-    console.log("current guess", currentGuess);
-    if (wordTooShort) {
-      // do nothing while we are animating
-      return;
-    }
-
-    if (keyValue === "Enter") {
-      console.log(currentGuess.length);
-      if (currentGuess.length === WORD_LENGTH) {
-        // submit
-        if (currentGuess.join("") === targetWord) {
-          // correct
-          setCorrect(true);
-        } else {
-          // incorrect
-          if (guesses.length + 1 === MAX_GUESSES) {
-            // game over
-          }
-        }
-
-        setGuesses((guesses) => [...guesses, currentGuess]);
-        // setCurrentGuess([]);
-      } else {
-        // too short
-        setWordTooShort(true);
-        setTimeout(() => {
-          setWordTooShort(false);
-        }, 1000);
-      }
-    } else if (keyValue === "Delete") {
-      if (currentGuess.length > 0) {
-        setCurrentGuess((guess) => {
-          const newGuess = [...guess];
-          return [...newGuess.splice(0, guess.length - 1)];
-        });
-      }
-    } else if (isLetter(keyValue)) {
-      if (currentGuess.length < WORD_LENGTH) {
-        setCurrentGuess((guess) => [
-          ...guess,
-          getKeyDisplayFromKeyValue(keyValue),
-        ]);
-      }
-    }
+    // send({ type: "KEY_EVENT", keyValue });
+    controller(modelState, { type: "KEY_EVENT", keyValue });
   };
 
   useEffect(() => {
