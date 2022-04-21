@@ -3,6 +3,10 @@ import "./App.css";
 import Grid from "./components/Grid";
 import HeaderBar from "./components/HeaderBar";
 import Keyboard from "./components/Keyboard";
+import produce, { enablePatches } from "immer";
+import DomainMachine from "./machine";
+
+enablePatches();
 
 const getKeyDisplayFromKeyValue = (keyValue) => {
   return keyValue.toUpperCase();
@@ -16,6 +20,7 @@ const initialState = {
   finite: {
     view: {
       value: "game", // game | settings | stats
+      stateNode: DomainMachine.initialState,
     },
     core: {
       value: "guessing", //  guessing | checkingWord
@@ -116,47 +121,47 @@ function model(state, event) {
 // - info
 function viewController(state, viewEvent) {
   const { finite, extended } = state;
-
-  let newState = { ...state };
   let domainEvent = undefined;
 
-  switch (finite.view.value) {
-    case "game": {
-      switch (viewEvent.type) {
-        case "KEY_EVENT": {
-          if (viewEvent.keyValue === "Enter") {
-            domainEvent = { type: "SUBMIT_GUESS" };
-          } else if (viewEvent.keyValue === "Delete") {
-            domainEvent = { type: "DELETE_LETTER" };
-          } else {
-            domainEvent = {
-              type: "ADD_LETTER_TO_GUESS",
-              letter: viewEvent.keyValue,
-            };
+  const nextState = produce(state, (draft) => {
+    switch (finite.view.value) {
+      case "game": {
+        switch (viewEvent.type) {
+          case "KEY_EVENT": {
+            if (viewEvent.keyValue === "Enter") {
+              domainEvent = { type: "SUBMIT_GUESS" };
+            } else if (viewEvent.keyValue === "Delete") {
+              domainEvent = { type: "DELETE_LETTER" };
+            } else {
+              domainEvent = {
+                type: "ADD_LETTER_TO_GUESS",
+                letter: viewEvent.keyValue,
+              };
+            }
+
+            break;
           }
 
-          break;
+          case "OPEN_SETTINGS": {
+            draft.finite.value = "settings";
+            break;
+          }
+          default: {
+          }
         }
-
-        case "OPEN_SETTINGS": {
-          newState.finite.value = "settings";
-          break;
-        }
-        default: {
-        }
+        break;
       }
-      break;
+      case "wordTooShort": {
+        // block all user actions? or just key events?
+        // lets just block all actions for now
+        break;
+      }
+      default: {
+      }
     }
-    case "wordTooShort": {
-      // block all user actions? or just key events?
-      // lets just block all actions for now
-      break;
-    }
-    default: {
-    }
-  }
+  });
 
-  return [newState, domainEvent];
+  return [nextState, domainEvent];
 }
 
 // core states:
@@ -168,34 +173,42 @@ function viewController(state, viewEvent) {
 // - info
 function domainController(state, event) {
   const { finite, extended } = state;
+  console.log("domain machine", DomainMachine, DomainMachine.initialState);
+  const current = finite.core.stateNode || DomainMachine.initialState;
+  current.context.store = state;
+  const next = DomainMachine.transition(finite.core.stateNode, event);
 
-  const { currentGuess } = extended;
-  const newState = { ...state };
-  switch (event.type) {
-    case "SUBMIT_GUESS": {
-      // too short?
-      // else check word'
-      // guess correct / incorrect
-      return;
-    }
-    case "DELETE_LETTER": {
-      let newGuess = [...newState.extended.currentGuess];
-      newGuess = [...newGuess.splice(0, newGuess.length - 1)];
-      newState.extended.currentGuess = newGuess;
-      break;
-    }
-    case "ADD_LETTER_TO_GUESS": {
-      if (currentGuess.length < WORD_LENGTH) {
-        const newGuess = [...newState.extended.currentGuess, event.letter];
-        newState.extended.currentGuess = newGuess;
+  console.log("NEXT", next);
+  const nextState = produce(state, (draft) => {
+    draft.finite.core.stateNode = next;
+
+    const { currentGuess } = extended;
+    switch (event.type) {
+      case "SUBMIT_GUESS": {
+        // too short?
+        // else check word'
+        // guess correct / incorrect
+        return;
       }
-      break;
+      case "DELETE_LETTER": {
+        draft.extended.currentGuess.splice(
+          0,
+          draft.extended.currentGuess.length - 1
+        );
+        break;
+      }
+      case "ADD_LETTER_TO_GUESS": {
+        if (currentGuess.length < WORD_LENGTH) {
+          draft.extended.currentGuess.push(event.letter);
+        }
+        break;
+      }
+      default: {
+        break;
+      }
     }
-    default: {
-      break;
-    }
-  }
-  return [newState];
+  });
+  return [nextState];
 }
 
 const createController = (sendToModel) => (state, event) => {
