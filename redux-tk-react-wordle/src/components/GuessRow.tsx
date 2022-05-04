@@ -1,14 +1,18 @@
 import React from "react";
+import { LetterStatus } from "../features/guesses/guessSlice";
 import Tile from "./Tile";
 
 type Props = {
   guessLength: number;
-  wordTooShort: boolean;
+  wordTooShort?: boolean;
   guess?: Array<string>;
+  targetWord: string;
+  isCurrentGuess: boolean;
 };
 
 const GuessRow = (props: Props) => {
-  const { guessLength, wordTooShort, guess } = props;
+  const { guessLength, wordTooShort, guess, targetWord, isCurrentGuess } =
+    props;
   let letters = [];
   if (guess) {
     letters = guess;
@@ -26,7 +30,16 @@ const GuessRow = (props: Props) => {
       {wordTooShort && <WordTooShortPopup />}
 
       {letters.map((letter, index) => (
-        <Tile letter={letter} key={index} />
+        <Tile
+          letter={letter}
+          key={index}
+          status={
+            isCurrentGuess || !guess
+              ? "unknown"
+              : getLetterStatus(targetWord, letter, index)
+          }
+          isRevealing={false}
+        />
       ))}
     </div>
   );
@@ -65,6 +78,22 @@ function WordTooShortPopup() {
       </div>
     </div>
   );
+}
+
+function getLetterStatus(
+  targetWord: string,
+  letter: string,
+  index: number
+): LetterStatus {
+  if (targetWord.split("")[index] === letter) {
+    return "correct";
+  }
+
+  if (targetWord.includes(letter)) {
+    return "present";
+  }
+
+  return "absent";
 }
 
 export default GuessRow;

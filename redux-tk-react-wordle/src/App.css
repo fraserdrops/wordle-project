@@ -2,6 +2,16 @@
   text-align: center;
 }
 
+html,
+body {
+  overscroll-behavior: none;
+}
+
+:root {
+  --header-bar-height: 51px;
+  --darkendGreen: #538d4e;
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;
@@ -39,4 +49,40 @@
 
 button {
   font-size: calc(10px + 2vmin);
+}
+
+#gameContainer {
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  width: 100%;
+  max-width: var(--game-max-width);
+  height: calc(100vh - var(--header-bar-height));
+}
+
+.word-too-short {
+  animation: shake 0.82s ease both;
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
