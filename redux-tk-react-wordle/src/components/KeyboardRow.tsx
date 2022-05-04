@@ -2,7 +2,7 @@ import React from "react";
 import Key from "./Key";
 
 type Props = {
-  handleKeyPress: (key: string) => null;
+  handleKeyPress: (key: string) => Promise<void>;
   keys: Array<string>;
   padSides: boolean;
 };

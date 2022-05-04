@@ -1,4 +1,6 @@
 import React from "react";
+import { useAppDispatch } from "../app/hooks";
+import { handleKeyPress } from "../features/guesses/guessSlice";
 import KeyboardRow from "./KeyboardRow";
 
 const rowKeyStrings = [
@@ -20,12 +22,10 @@ const getKeyCodeFromKey = (key: string): string => {
   return key;
 };
 
-type Props = {
-  handleKeyPress: (key: string) => null;
-};
+type Props = {};
 
 const Keyboard = (props: Props) => {
-  const { handleKeyPress } = props;
+  const dispatch = useAppDispatch();
   return (
     <div
       style={{
@@ -41,7 +41,7 @@ const Keyboard = (props: Props) => {
             keys={rowKeys.split(" ")}
             padSides={index === 1}
             handleKeyPress={(key: string) =>
-              handleKeyPress(getKeyCodeFromKey(key))
+              dispatch(handleKeyPress({ keyValue: getKeyCodeFromKey(key) }))
             }
             key={index}
           />

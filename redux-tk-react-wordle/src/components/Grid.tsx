@@ -11,9 +11,15 @@ type Props = {
   currentGuess: Array<string>;
 };
 
-const Grid = (props: Props) => {
-  const { guesses, maxGuesses, guessLength, wordTooShort, currentGuess } =
-    useAppSelector((state) => state.appState);
+const Grid = (props: {}) => {
+  const {
+    guesses,
+    maxGuesses,
+    guessLength,
+    wordTooShort,
+    currentGuess,
+    targetWord,
+  } = useAppSelector((state) => state.appState);
 
   const rows = [];
   const currentRowIndex = guesses.length;
@@ -39,21 +45,28 @@ const Grid = (props: Props) => {
           guessLength={guessLength}
           guess={guess}
           key={index}
-          wordTooShort={wordTooShort}
+          isCurrentGuess={false}
+          targetWord={targetWord}
         />
       ))}
       {displayCurrentGuess && (
+        // TODO: GuessRow could be split into CompletedGuessRow, CurrentGuessRow,
+        // and EmptyGuessRow. This would mean less conditional logic inside one big component
         <GuessRow
           guessLength={guessLength}
           wordTooShort={wordTooShort}
           guess={paddedCurrentGuess}
+          isCurrentGuess
+          targetWord={targetWord}
         />
       )}
       {new Array(emptyRows).fill(0).map((_, index) => (
         <GuessRow
           guessLength={guessLength}
-          wordTooShort={wordTooShort && index === currentRowIndex}
+          // wordTooShort={wordTooShort && index === currentRowIndex}
           key={index}
+          isCurrentGuess={false}
+          targetWord={targetWord}
         />
       ))}
     </div>
