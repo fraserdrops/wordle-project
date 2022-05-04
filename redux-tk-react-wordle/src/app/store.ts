@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import counterReducer from "../features/counter/counterSlice";
+import guessReducer from "../features/guesses/guessSlice";
 
 export const store = configureStore({
   reducer: {
     counter: counterReducer,
+    appState: guessReducer,
   },
 });
 // Infer the `RootState` and `AppDispatch` types from the store itself

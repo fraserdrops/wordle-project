@@ -1,7 +1,13 @@
 import React from "react";
 import Tile from "./Tile";
 
-const GuessRow = (props) => {
+type Props = {
+  guessLength: number;
+  wordTooShort: boolean;
+  guess?: Array<string>;
+};
+
+const GuessRow = (props: Props) => {
   const { guessLength, wordTooShort, guess } = props;
   let letters = [];
   if (guess) {

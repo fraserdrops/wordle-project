@@ -1,7 +1,13 @@
 import React from "react";
 import Key from "./Key";
 
-const KeyboardRow = (props) => {
+type Props = {
+  handleKeyPress: (key: string) => null;
+  keys: Array<string>;
+  padSides: boolean;
+};
+
+const KeyboardRow = (props: Props) => {
   const { keys, padSides, handleKeyPress } = props;
   return (
     <div

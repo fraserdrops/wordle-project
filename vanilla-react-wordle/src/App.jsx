@@ -3,6 +3,13 @@ import "./App.css";
 import Grid from "./components/Grid";
 import HeaderBar from "./components/HeaderBar";
 import Keyboard from "./components/Keyboard";
+<<<<<<< HEAD
+=======
+import produce, { enablePatches, applyPatches } from "immer";
+import DomainMachine from "./machine";
+
+enablePatches();
+>>>>>>> c855604... Create types
 
 const getKeyDisplayFromKeyValue = (keyValue) => {
   return keyValue.toUpperCase();
@@ -94,6 +101,137 @@ function reducer(state, event) {
   }
 }
 
+<<<<<<< HEAD
+=======
+function model(state, event) {
+  switch (event.type) {
+    case "UPDATE_STATE": {
+      return event.newState;
+    }
+
+    default: {
+      return state;
+    }
+  }
+}
+
+// takes the current app state and the view event, and returns a domain event
+// view states:
+// - game
+//  - regular
+//  - wordToShort
+//  - revealing words
+// - settings
+// - info
+function viewController(state, viewEvent) {
+  const { finite, extended } = state;
+  let domainEvent = undefined;
+
+  const nextState = produce(state, (draft) => {
+    switch (finite.view.value) {
+      case "game": {
+        switch (viewEvent.type) {
+          case "KEY_EVENT": {
+            if (viewEvent.keyValue === "Enter") {
+              domainEvent = { type: "SUBMIT_GUESS" };
+            } else if (viewEvent.keyValue === "Delete") {
+              domainEvent = { type: "DELETE_LETTER" };
+            } else {
+              domainEvent = {
+                type: "ADD_LETTER_TO_GUESS",
+                letter: viewEvent.keyValue,
+              };
+            }
+
+            break;
+          }
+
+          case "OPEN_SETTINGS": {
+            draft.finite.value = "settings";
+            break;
+          }
+          default: {
+          }
+        }
+        break;
+      }
+      case "wordTooShort": {
+        // block all user actions? or just key events?
+        // lets just block all actions for now
+        break;
+      }
+      default: {
+      }
+    }
+  });
+
+  return [nextState, domainEvent];
+}
+
+// core states:
+// - game
+//  - regular
+//  - wordToShort
+//  - revealing words
+// - settings
+// - info
+function domainController(state, event) {
+  const { finite, extended } = state;
+  console.log("domain machine", DomainMachine, DomainMachine.initialState);
+  const current = finite.core.stateNode || DomainMachine.initialState;
+  current.context.store = state;
+  current.context.patches = [];
+  const nextStateNode = DomainMachine.transition(finite.core.stateNode, event);
+  const nextState = applyPatches(state, nextStateNode.context.patches);
+  console.log("nextState", nextState);
+
+  // const nextState = produce(state, (draft) => {
+  //   draft.finite.core.stateNode = next;
+
+  //   const { currentGuess } = extended;
+  //   switch (event.type) {
+  //     case "SUBMIT_GUESS": {
+  //       // too short?
+  //       // else check word'
+  //       // guess correct / incorrect
+  //       return;
+  //     }
+  //     case "DELETE_LETTER": {
+  //       draft.extended.currentGuess.splice(
+  //         0,
+  //         draft.extended.currentGuess.length - 1
+  //       );
+  //       break;
+  //     }
+  //     case "ADD_LETTER_TO_GUESS": {
+  //       if (currentGuess.length < WORD_LENGTH) {
+  //         draft.extended.currentGuess.push(event.letter);
+  //       }
+  //       break;
+  //     }
+  //     default: {
+  //       break;
+  //     }
+  //   }
+  // });
+  return [nextState];
+}
+
+const createController = (sendToModel) => (state, event) => {
+  const viewEvent = event;
+  console.log(viewEvent);
+  const [stateWithViewUpdates, domainEvent] = viewController(state, event);
+  console.log("DOMAIN EVENT", domainEvent);
+  console.log("stateWithViewUpdates", stateWithViewUpdates);
+  if (domainEvent) {
+    const [newState] = domainController(stateWithViewUpdates, domainEvent);
+    sendToModel({ type: "UPDATE_STATE", newState });
+  } else {
+    sendToModel({ type: "UPDATE_STATE" });
+  }
+};
+
+>>>>>>> c855604... Create types
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 6;
 

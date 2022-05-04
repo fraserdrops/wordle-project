@@ -1,6 +1,10 @@
 import React from "react";
 
-const Key = (props) => {
+type Props = {
+  letter: string;
+};
+
+const Key = (props: Props) => {
   const { letter } = props;
   return <button>{letter}</button>;
 };

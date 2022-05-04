@@ -1,15 +1,26 @@
 import React from "react";
+import { useSelector } from "react-redux";
 import GuessRow from "./GuessRow";
+import { useAppSelector } from "../app/hooks";
 
-const Grid = (props) => {
+type Props = {
+  guesses: Array<Array<string>>;
+  maxGuesses: number;
+  guessLength: number;
+  wordTooShort: boolean;
+  currentGuess: Array<string>;
+};
+
+const Grid = (props: Props) => {
   const { guesses, maxGuesses, guessLength, wordTooShort, currentGuess } =
-    props;
+    useAppSelector((state) => state.appState);
+
   const rows = [];
   const currentRowIndex = guesses.length;
   const emptyRows = maxGuesses - guesses.length - 1;
   const displayCurrentGuess = guesses.length < maxGuesses;
   const paddedCurrentGuess = currentGuess ? [...currentGuess] : undefined;
-  if (currentGuess.length < guessLength) {
+  if (paddedCurrentGuess && currentGuess.length < guessLength) {
     while (paddedCurrentGuess.length < guessLength) {
       paddedCurrentGuess.push("");
     }
@@ -23,8 +34,13 @@ const Grid = (props) => {
         width: "100%",
       }}
     >
-      {guesses.map((guess, index) => (
-        <GuessRow guessLength={guessLength} guess={guess} key={index} />
+      {guesses.map((guess: Array<string>, index: number) => (
+        <GuessRow
+          guessLength={guessLength}
+          guess={guess}
+          key={index}
+          wordTooShort={wordTooShort}
+        />
       ))}
       {displayCurrentGuess && (
         <GuessRow
