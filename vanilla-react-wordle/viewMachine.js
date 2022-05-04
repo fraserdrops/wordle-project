@@ -33,21 +33,16 @@ const addLetterToGuess = (store, letter) => {
   return patches;
 };
 
-const DomainMachine = createMachine({
+const ViewMachine = createMachine({
   context: {
     store: {},
     patches: {},
   },
-  initial: "p1",
+  initial: "game",
   states: {
-    p1: {
+    game: {
+      states: {},
       on: {
-        NEXT: {
-          target: "p2",
-        },
-        SUBMIT_GUESS: {
-          target: "submittingGuess",
-        },
         ADD_LETTER_TO_GUESS: {
           actions: [
             assign({
@@ -60,40 +55,12 @@ const DomainMachine = createMachine({
             }),
           ],
         },
-        START_RACE: {
-          cond: (ctx, event, meta) => {
-            console.log("meat", meta);
-            // return true;
-            return ctx.store.fraser === "cool";
-          },
-          // cond: () =>
-          actions: [
-            assign({
-              patches: (ctx, event, b) => {
-                // updateFraser("steve");
-                console.log("ASSIGNING", b);
-
-                return updateFraserPatches("steve");
-                // return "p1";
-              },
-            }),
-            (ctx, event, meta) => updateFraser("steve"),
-            (ctx, event, b) => console.log("yoza", event, b),
-          ],
-        },
       },
     },
-    p2: {
-      on: {
-        NEXT: {
-          target: "p3",
-        },
-      },
+    settings: {
+      on: {},
     },
-    p3: {},
-    submittingGuess: {},
-    addLetter: {},
   },
 });
 
-export default DomainMachine;
+export default ViewMachine;

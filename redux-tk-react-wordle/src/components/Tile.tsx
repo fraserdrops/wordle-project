@@ -1,6 +1,10 @@
 import React from "react";
 
-const Tile = (props) => {
+type Props = {
+  letter: string;
+};
+
+const Tile = (props: Props) => {
   const { letter } = props;
   return (
     <div

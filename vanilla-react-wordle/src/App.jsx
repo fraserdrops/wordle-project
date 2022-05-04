@@ -3,7 +3,7 @@ import "./App.css";
 import Grid from "./components/Grid";
 import HeaderBar from "./components/HeaderBar";
 import Keyboard from "./components/Keyboard";
-import produce, { enablePatches } from "immer";
+import produce, { enablePatches, applyPatches } from "immer";
 import DomainMachine from "./machine";
 
 enablePatches();
@@ -176,38 +176,40 @@ function domainController(state, event) {
   console.log("domain machine", DomainMachine, DomainMachine.initialState);
   const current = finite.core.stateNode || DomainMachine.initialState;
   current.context.store = state;
-  const next = DomainMachine.transition(finite.core.stateNode, event);
+  current.context.patches = [];
+  const nextStateNode = DomainMachine.transition(finite.core.stateNode, event);
+  const nextState = applyPatches(state, nextStateNode.context.patches);
+  console.log("nextState", nextState);
 
-  console.log("NEXT", next);
-  const nextState = produce(state, (draft) => {
-    draft.finite.core.stateNode = next;
+  // const nextState = produce(state, (draft) => {
+  //   draft.finite.core.stateNode = next;
 
-    const { currentGuess } = extended;
-    switch (event.type) {
-      case "SUBMIT_GUESS": {
-        // too short?
-        // else check word'
-        // guess correct / incorrect
-        return;
-      }
-      case "DELETE_LETTER": {
-        draft.extended.currentGuess.splice(
-          0,
-          draft.extended.currentGuess.length - 1
-        );
-        break;
-      }
-      case "ADD_LETTER_TO_GUESS": {
-        if (currentGuess.length < WORD_LENGTH) {
-          draft.extended.currentGuess.push(event.letter);
-        }
-        break;
-      }
-      default: {
-        break;
-      }
-    }
-  });
+  //   const { currentGuess } = extended;
+  //   switch (event.type) {
+  //     case "SUBMIT_GUESS": {
+  //       // too short?
+  //       // else check word'
+  //       // guess correct / incorrect
+  //       return;
+  //     }
+  //     case "DELETE_LETTER": {
+  //       draft.extended.currentGuess.splice(
+  //         0,
+  //         draft.extended.currentGuess.length - 1
+  //       );
+  //       break;
+  //     }
+  //     case "ADD_LETTER_TO_GUESS": {
+  //       if (currentGuess.length < WORD_LENGTH) {
+  //         draft.extended.currentGuess.push(event.letter);
+  //       }
+  //       break;
+  //     }
+  //     default: {
+  //       break;
+  //     }
+  //   }
+  // });
   return [nextState];
 }
 

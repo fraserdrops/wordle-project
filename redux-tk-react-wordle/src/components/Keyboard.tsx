@@ -8,7 +8,7 @@ const rowKeyStrings = [
 ];
 
 // turn the key display string into a real key code
-const getKeyCodeFromKey = (key) => {
+const getKeyCodeFromKey = (key: string): string => {
   if (key === "DEL") {
     return "Delete";
   }
@@ -20,7 +20,11 @@ const getKeyCodeFromKey = (key) => {
   return key;
 };
 
-const Keyboard = (props) => {
+type Props = {
+  handleKeyPress: (key: string) => null;
+};
+
+const Keyboard = (props: Props) => {
   const { handleKeyPress } = props;
   return (
     <div
@@ -36,7 +40,9 @@ const Keyboard = (props) => {
           <KeyboardRow
             keys={rowKeys.split(" ")}
             padSides={index === 1}
-            handleKeyPress={(key) => handleKeyPress(getKeyCodeFromKey(key))}
+            handleKeyPress={(key: string) =>
+              handleKeyPress(getKeyCodeFromKey(key))
+            }
             key={index}
           />
         );
