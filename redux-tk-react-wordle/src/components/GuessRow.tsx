@@ -1,18 +1,23 @@
 import React from "react";
-import { LetterStatus } from "../features/guesses/guessSlice";
+import {
+  getLetterStatusFromGuess,
+  InvalidGuessInfo,
+  LetterStatus,
+  REVEAL_ANIMATION_TIME_PER_TILE,
+} from "../features/guesses/guessSlice";
 import Tile from "./Tile";
 
 type Props = {
   guessLength: number;
-  wordTooShort?: boolean;
   guess?: Array<string>;
   targetWord: string;
   isCurrentGuess: boolean;
+  revealGuessResult: boolean;
+  invalidGuess: undefined | InvalidGuessInfo;
 };
 
 const GuessRow = (props: Props) => {
-  const { guessLength, wordTooShort, guess, targetWord, isCurrentGuess } =
-    props;
+  const { guessLength, invalidGuess, guess, targetWord, isCurrentGuess, revealGuessResult } = props;
   let letters = [];
   if (guess) {
     letters = guess;
@@ -25,27 +30,32 @@ const GuessRow = (props: Props) => {
   return (
     <div
       style={{ display: "flex", gap: 5, flexGrow: 1, position: "relative" }}
-      className={wordTooShort ? "word-too-short" : ""}
+      className={invalidGuess ? "word-too-short" : ""}
     >
-      {wordTooShort && <WordTooShortPopup />}
+      {invalidGuess && <InvalidGuessPopup message={invalidGuess.message} />}
 
       {letters.map((letter, index) => (
         <Tile
           letter={letter}
           key={index}
           status={
-            isCurrentGuess || !guess
+            (isCurrentGuess && !revealGuessResult) || !guess
               ? "unknown"
-              : getLetterStatus(targetWord, letter, index)
+              : getLetterStatusFromGuess(targetWord, letter, index)
           }
-          isRevealing={false}
+          isRevealing={revealGuessResult}
+          revealDelay={index * REVEAL_ANIMATION_TIME_PER_TILE}
         />
       ))}
     </div>
   );
 };
 
-function WordTooShortPopup() {
+type InvalidPopupType = {
+  message: string;
+};
+function InvalidGuessPopup(props: InvalidPopupType) {
+  const { message } = props;
   return (
     <div
       style={{
@@ -73,27 +83,11 @@ function WordTooShortPopup() {
             padding: 5,
           }}
         >
-          Word too short
+          {message}
         </p>
       </div>
     </div>
   );
-}
-
-function getLetterStatus(
-  targetWord: string,
-  letter: string,
-  index: number
-): LetterStatus {
-  if (targetWord.split("")[index] === letter) {
-    return "correct";
-  }
-
-  if (targetWord.includes(letter)) {
-    return "present";
-  }
-
-  return "absent";
 }
 
 export default GuessRow;
