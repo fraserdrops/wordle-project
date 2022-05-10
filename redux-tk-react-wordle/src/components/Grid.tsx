@@ -16,9 +16,10 @@ const Grid = (props: {}) => {
     guesses,
     maxGuesses,
     guessLength,
-    wordTooShort,
+    invalidGuess,
     currentGuess,
     targetWord,
+    revealGuessResult,
   } = useAppSelector((state) => state.appState);
 
   const rows = [];
@@ -54,10 +55,11 @@ const Grid = (props: {}) => {
         // and EmptyGuessRow. This would mean less conditional logic inside one big component
         <GuessRow
           guessLength={guessLength}
-          wordTooShort={wordTooShort}
+          invalidGuess={invalidGuess}
           guess={paddedCurrentGuess}
           isCurrentGuess
           targetWord={targetWord}
+          revealGuessResult={revealGuessResult}
         />
       )}
       {new Array(emptyRows).fill(0).map((_, index) => (

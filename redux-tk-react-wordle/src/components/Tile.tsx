@@ -5,53 +5,47 @@ type Props = {
   letter: string;
   status: LetterStatus;
   isRevealing?: boolean;
+  revealDelay: number;
 };
 
 const Tile = (props: Props) => {
-  const { letter, status, isRevealing } = props;
-  let { color, backgroundColor } = getStylesFromStatus(status);
+  const { letter, status, isRevealing, revealDelay } = props;
+  let tileClass = getClassFromStatus(letter, status) + " tile";
+  isRevealing && console.log(tileClass, status);
   return (
     <div
+      className={isRevealing ? "tile cell-reveal " + tileClass : tileClass}
       style={{
         width: "100%",
         aspectRatio: "1 / 1",
-        border: "2px solid #d3d6da",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         fontSize: "36px",
         fontWeight: "600",
-        // derive these from the letter status
-        color,
-        backgroundColor,
+        animationDelay: revealDelay + "s",
+        borderWidth: 2,
+        borderStyle: "solid",
       }}
     >
-      {letter}
+      <div className="tile-letter" style={{ animationDelay: revealDelay + "s" }}>
+        {letter}{" "}
+      </div>
     </div>
   );
 };
 
-function getStylesFromStatus(status: LetterStatus) {
-  let backgroundColor = "white";
-  let color = "black";
-  switch (status) {
-    case "absent": {
-      backgroundColor = "grey";
-      color = "white";
-      break;
-    }
-    case "correct": {
-      backgroundColor = "green";
-      color = "white";
-      break;
-    }
-    case "present": {
-      backgroundColor = "yellow";
-      color = "white";
-      break;
-    }
+function getClassFromStatus(letter: string, status: LetterStatus) {
+  if (!letter.length) {
+    return "empty";
   }
-  return { color, backgroundColor };
+  const map = {
+    absent: "absent",
+    correct: "correct",
+    present: "present",
+    unknown: "unknown",
+  };
+  return map[status];
 }
 
 export default Tile;

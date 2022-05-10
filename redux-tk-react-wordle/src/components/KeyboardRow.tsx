@@ -1,5 +1,6 @@
 import React from "react";
-import Key from "./Key";
+import { useAppSelector } from "../app/hooks";
+import { selectLetterStatuses } from "../features/guesses/guessSlice";
 
 type Props = {
   handleKeyPress: (key: string) => Promise<void>;
@@ -9,6 +10,7 @@ type Props = {
 
 const KeyboardRow = (props: Props) => {
   const { keys, padSides, handleKeyPress } = props;
+  const letterStatuses = useAppSelector(selectLetterStatuses);
   return (
     <div
       style={{
@@ -24,17 +26,21 @@ const KeyboardRow = (props: Props) => {
       {padSides && <div style={{ flex: 0.38 }} />}
       {keys.map((key) => {
         let flex = 1;
+
+        // these keys are at the end and need to be larger
         if (key === "ENTER" || key === "DEL") {
           flex = 1.5;
         }
+
+        const statusClass = letterStatuses[key] || "unknown";
         return (
           <button
             onClick={() => handleKeyPress(key)}
+            className={statusClass + " key"}
             key={key}
             style={{
               flex,
               border: "none",
-              background: "#e3e3e3",
               padding: 0,
               fontSize: 16,
             }}
