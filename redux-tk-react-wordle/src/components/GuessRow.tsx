@@ -5,6 +5,7 @@ import {
   LetterStatus,
   REVEAL_ANIMATION_TIME_PER_TILE,
 } from "../features/guesses/guessSlice";
+import MessagePopup from "./MessagePopup";
 import Tile from "./Tile";
 
 type Props = {
@@ -32,7 +33,21 @@ const GuessRow = (props: Props) => {
       style={{ display: "flex", gap: 5, flexGrow: 1, position: "relative" }}
       className={invalidGuess ? "word-too-short" : ""}
     >
-      {invalidGuess && <InvalidGuessPopup message={invalidGuess.message} />}
+      {invalidGuess && (
+        <div
+          style={{
+            position: "absolute",
+            // top: 2,
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <MessagePopup message={invalidGuess.message} />
+        </div>
+      )}
 
       {letters.map((letter, index) => (
         <Tile
@@ -50,44 +65,5 @@ const GuessRow = (props: Props) => {
     </div>
   );
 };
-
-type InvalidPopupType = {
-  message: string;
-};
-function InvalidGuessPopup(props: InvalidPopupType) {
-  const { message } = props;
-  return (
-    <div
-      style={{
-        position: "absolute",
-        // top: 2,
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <div
-        style={{
-          background: "black",
-          color: "white",
-          zIndex: 10,
-          height: 30,
-          borderRadius: 5,
-        }}
-      >
-        <p
-          style={{
-            margin: 0,
-            padding: 5,
-          }}
-        >
-          {message}
-        </p>
-      </div>
-    </div>
-  );
-}
 
 export default GuessRow;

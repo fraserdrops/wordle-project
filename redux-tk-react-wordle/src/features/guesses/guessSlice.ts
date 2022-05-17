@@ -2,8 +2,13 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AppDispatch, GetState, RootState } from "../../app/store";
 import { WORDS } from "../../constants/wordList";
 import { shareStatus } from "../../shared/shareResults";
+import { dispatchUpdateStats } from "../stats/statsSlice";
+import { MAX_GUESSES } from "../../shared/constants";
+import { setOpenDialog } from "../view/viewSlice";
 
-export interface GuessState {
+export type GameStatus = "playing" | "won" | "lost";
+
+export interface GameState {
   guesses: Array<Guess>;
   maxGuesses: number;
   guessLength: number;
@@ -13,6 +18,8 @@ export interface GuessState {
   revealGuessResult: boolean;
   hardMode: boolean;
   invalidGuess: InvalidGuessInfo | undefined;
+  congrats: string | undefined;
+  gameStatus: GameStatus;
 }
 type CorrectLetterStatus = "correct";
 
@@ -37,16 +44,24 @@ export type DiscoveredLetters = Record<
   { status: LetterStatus; guessIndex: number; letter: string }
 >;
 
-const initialState: GuessState = {
+const initialState: GameState = {
   currentGuess: [],
-  maxGuesses: 5,
+  maxGuesses: MAX_GUESSES,
   guessLength: 5,
   invalidGuess: undefined,
-  guesses: [],
+  guesses: [
+    "TEARS".split(""),
+    "TEARS".split(""),
+    "TEARS".split(""),
+    "TEARS".split(""),
+    "TEARS".split(""),
+  ],
   targetWord: "REACT",
   correct: false,
   revealGuessResult: false,
   hardMode: true,
+  congrats: undefined,
+  gameStatus: "playing",
 };
 
 export const guessSlice = createSlice({
@@ -79,6 +94,15 @@ export const guessSlice = createSlice({
     endGuessReveal: (state) => {
       state.revealGuessResult = false;
     },
+    setCongratsMessage: (state, action: PayloadAction<{ message: string }>) => {
+      state.congrats = action.payload.message;
+    },
+    clearCongratsMessage: (state) => {
+      state.congrats = undefined;
+    },
+    setGameStatus: (state, action: PayloadAction<{ status: GameStatus }>) => {
+      state.gameStatus = action.payload.status;
+    },
   },
 });
 
@@ -91,7 +115,6 @@ const isLetter = (keyValue: string) => {
 };
 
 export const WORD_LENGTH = 5;
-export const MAX_GUESSES = 6;
 
 // Action creators are generated for each case reducer function
 const {
@@ -103,6 +126,9 @@ const {
   endGuessReveal,
   setInvalidGuess,
   clearInvalidGuess,
+  setCongratsMessage,
+  clearCongratsMessage,
+  setGameStatus,
 } = guessSlice.actions;
 
 const submitGuess = () => async (dispatch: AppDispatch, getState: GetState) => {
@@ -130,33 +156,33 @@ const submitGuess = () => async (dispatch: AppDispatch, getState: GetState) => {
   if (invalidGuess) {
     dispatch(reportInvalidGuess({ message: invalidGuessMessage }));
   } else {
-    if (currentGuess.join("") === targetWord) {
-      // correct
-    } else {
-      // incorrect
-      if (guesses.length + 1 === MAX_GUESSES) {
-        // game over
-      }
-    }
-
+    dispatch(revealGuessResult());
     setTimeout(() => {
       dispatch(endGuessReveal());
+      if (currentGuess.join("") === targetWord) {
+        dispatch(setGameStatus({ status: "won" }));
+        dispatch(setCorrect());
+        dispatch(dispatchUpdateStats(guesses.length));
+        dispatch(setCongratsMessage({ message: getCongratsMessage(guesses.length) }));
+        setTimeout(() => {
+          dispatch(clearCongratsMessage());
+          dispatch(setOpenDialog({ dialog: "stats" }));
+        }, 4000);
+        // dispatch()
+        // correct
+      } else {
+        // incorrect
+        if (guesses.length + 1 === MAX_GUESSES) {
+          dispatch(dispatchUpdateStats(guesses.length + 1));
+          dispatch(setGameStatus({ status: "lost" }));
+
+          // game over
+        }
+      }
       dispatch(addGuess({ guess: currentGuess }));
     }, REVEAL_ANIMATION_TIME_PER_TILE * WORD_LENGTH * 1000);
     // dispatch(addGuess({ guess: currentGuess }));
     // submit
-    if (currentGuess.join("") === targetWord) {
-      dispatch(revealGuessResult());
-      dispatch(setCorrect());
-      // dispatch()
-      // correct
-    } else {
-      dispatch(revealGuessResult());
-      // incorrect
-      if (guesses.length + 1 === MAX_GUESSES) {
-        // game over
-      }
-    }
   }
 };
 
@@ -167,6 +193,10 @@ export const shareResults = () => async (dispatch: AppDispatch, getState: GetSta
   shareStatus(guessStatuses, false, hardMode, false, false, 2, () => {});
 };
 
+function getCongratsMessage(incorrectGuesses: number) {
+  const messages = ["Genius", "Amazing", "Great", "Good", "Nice", "Close one"];
+  return messages[incorrectGuesses];
+}
 // check that every discovered letter is present in the guess
 function guessContainsAllDiscoveredLetters(guess: Guess, discoveredLetters: DiscoveredLetters) {
   // we want to find what letters are known to be present, but the player hasn't included in the guess
@@ -231,8 +261,12 @@ const reportInvalidGuess =
 export const handleKeyPress =
   ({ key }: { key: string }) =>
   async (dispatch: AppDispatch, getState: GetState) => {
-    const { currentGuess, invalidGuess } = getState().appState;
+    const { currentGuess, invalidGuess, gameStatus } = getState().appState;
     const keyValue = getKeyCodeFromKey(key).toLocaleUpperCase();
+
+    if (gameStatus !== "playing") {
+      return;
+    }
 
     if (invalidGuess) {
       // do nothing while we are animating

@@ -2,19 +2,19 @@ import React from "react";
 
 type Props = {
   gamesPlayed: number;
-  winPercentage: number;
-  currentWinStreak: number;
-  largestWinStreak: number;
+  winRatio: number;
+  currentStreak: number;
+  longestStreak: number;
 };
 
 const StatsNumerical = (props: Props) => {
-  const { gamesPlayed, winPercentage, currentWinStreak, largestWinStreak } = props;
+  const { gamesPlayed, winRatio, currentStreak, longestStreak } = props;
   return (
     <div style={{ display: "flex" }}>
       <StatsNumericalItem stat={gamesPlayed} label="Played" />
-      <StatsNumericalItem stat={winPercentage * 100} label="Win %" />
-      <StatsNumericalItem stat={currentWinStreak} label="Current Streak" />
-      <StatsNumericalItem stat={largestWinStreak} label="Max Streak" />
+      <StatsNumericalItem stat={Math.round(winRatio * 100)} label="Win %" />
+      <StatsNumericalItem stat={currentStreak} label="Current Streak" />
+      <StatsNumericalItem stat={longestStreak} label="Max Streak" />
     </div>
   );
 };

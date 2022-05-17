@@ -1,4 +1,5 @@
-import { Guess, LetterStatus, MAX_GUESSES } from "../features/guesses/guessSlice";
+import { Guess, LetterStatus } from "../features/guesses/guessSlice";
+import { MAX_GUESSES } from "./constants";
 
 export const shareStatus = (
   guessStatuses: Array<Array<LetterStatus>>,
