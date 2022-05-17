@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import logo from "./logo.svg";
 import "./App.css";
-import { Counter } from "./features/counter/Counter";
 import HeaderBar from "./components/HeaderBar";
 import Grid from "./components/Grid";
 import Keyboard from "./components/Keyboard";
@@ -10,21 +9,21 @@ import { handleKeyPress } from "./features/guesses/guessSlice";
 import ShareResult from "./components/ShareResults";
 import StatsDialog from "./components/StatsDialog";
 import HelpDialog from "./components/HelpDialog";
+import { closeDialog, setOpenDialog } from "./features/view/viewSlice";
 
 export type Dialogs = "stats" | "help" | "settings";
 
 function App() {
   const dispatch = useAppDispatch();
-  const { correct } = useAppSelector((state) => state.appState);
+  const { congrats, gameStatus, targetWord } = useAppSelector((state) => state.appState);
+  const { openDialog } = useAppSelector((state) => state.viewState);
 
-  const [dialogOpen, setDialogOpen] = useState<Dialogs | false>(false);
-
-  const handleOpenDialog = (dialogToOpen: "stats" | "help" | "settings") => {
-    setDialogOpen(dialogToOpen);
+  const handleOpenDialog = (dialog: "stats" | "help" | "settings") => {
+    dispatch(setOpenDialog({ dialog }));
   };
 
   const handleCloseDialog = () => {
-    setDialogOpen(false);
+    dispatch(closeDialog());
   };
 
   useEffect(() => {
@@ -38,7 +37,7 @@ function App() {
 
   return (
     <div className="App">
-      <HeaderBar {...{ handleOpenDialog, handleCloseDialog }} />
+      <HeaderBar {...{ handleOpenDialog }} />
       <div
         style={{
           width: "100%",
@@ -84,8 +83,8 @@ function App() {
         </div>
         <ShareResult />
       </div>
-      <HelpDialog open={dialogOpen === "help"} onClose={handleCloseDialog} />
-      <StatsDialog open={dialogOpen === "stats"} onClose={handleCloseDialog} />
+      <HelpDialog open={openDialog === "help"} onClose={handleCloseDialog} />
+      <StatsDialog open={openDialog === "stats"} onClose={handleCloseDialog} />
     </div>
   );
 }

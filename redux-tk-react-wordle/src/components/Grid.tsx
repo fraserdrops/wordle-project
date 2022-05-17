@@ -2,6 +2,7 @@ import React from "react";
 import { useSelector } from "react-redux";
 import GuessRow from "./GuessRow";
 import { useAppSelector } from "../app/hooks";
+import MessagePopup from "./MessagePopup";
 
 type Props = {
   guesses: Array<Array<string>>;
@@ -9,6 +10,7 @@ type Props = {
   guessLength: number;
   wordTooShort: boolean;
   currentGuess: Array<string>;
+  revealTargetWord: boolean;
 };
 
 const Grid = (props: {}) => {
@@ -20,13 +22,16 @@ const Grid = (props: {}) => {
     currentGuess,
     targetWord,
     revealGuessResult,
+    gameStatus,
+    congrats,
   } = useAppSelector((state) => state.appState);
 
   const rows = [];
   const currentRowIndex = guesses.length;
-  const emptyRows = maxGuesses - guesses.length - 1;
+  const emptyRows = Math.max(maxGuesses - guesses.length - 1, 0);
   const displayCurrentGuess = guesses.length < maxGuesses;
   const paddedCurrentGuess = currentGuess ? [...currentGuess] : undefined;
+  console.log(emptyRows, displayCurrentGuess, guesses.length, maxGuesses);
   if (paddedCurrentGuess && currentGuess.length < guessLength) {
     while (paddedCurrentGuess.length < guessLength) {
       paddedCurrentGuess.push("");
@@ -39,8 +44,13 @@ const Grid = (props: {}) => {
         flexDirection: "column",
         gap: 5,
         width: "100%",
+        position: "relative",
       }}
     >
+      {gameStatus === "lost" && <GameMessage message={targetWord} />}
+
+      {gameStatus === "won" && congrats && <GameMessage message={congrats} />}
+
       {guesses.map((guess: Array<string>, index: number) => (
         <GuessRow
           guessLength={guessLength}
@@ -74,5 +84,23 @@ const Grid = (props: {}) => {
     </div>
   );
 };
+
+function GameMessage(props: { message: string }) {
+  const { message } = props;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 17,
+        width: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <MessagePopup message={message} />
+    </div>
+  );
+}
 
 export default Grid;
