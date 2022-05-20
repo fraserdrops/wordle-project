@@ -1,19 +1,9 @@
 import React from "react";
-import { useSelector } from "react-redux";
-import GuessRow from "./GuessRow";
 import { useAppSelector } from "../app/hooks";
+import { CompletedGuessRow, CurrentGuessRow, EmptyGuessRow } from "./GuessRow";
 import MessagePopup from "./MessagePopup";
 
-type Props = {
-  guesses: Array<Array<string>>;
-  maxGuesses: number;
-  guessLength: number;
-  wordTooShort: boolean;
-  currentGuess: Array<string>;
-  revealTargetWord: boolean;
-};
-
-const Grid = (props: {}) => {
+export default function Grid() {
   const {
     guesses,
     maxGuesses,
@@ -24,19 +14,11 @@ const Grid = (props: {}) => {
     revealGuessResult,
     gameStatus,
     congrats,
-  } = useAppSelector((state) => state.appState);
+  } = useAppSelector((state) => state.gameState);
 
-  const rows = [];
-  const currentRowIndex = guesses.length;
   const emptyRows = Math.max(maxGuesses - guesses.length - 1, 0);
-  const displayCurrentGuess = guesses.length < maxGuesses;
-  const paddedCurrentGuess = currentGuess ? [...currentGuess] : undefined;
-  console.log(emptyRows, displayCurrentGuess, guesses.length, maxGuesses);
-  if (paddedCurrentGuess && currentGuess.length < guessLength) {
-    while (paddedCurrentGuess.length < guessLength) {
-      paddedCurrentGuess.push("");
-    }
-  }
+  const displayCurrentGuess = guesses.length < maxGuesses && currentGuess;
+
   return (
     <div
       style={{
@@ -52,38 +34,23 @@ const Grid = (props: {}) => {
       {gameStatus === "won" && congrats && <GameMessage message={congrats} />}
 
       {guesses.map((guess: Array<string>, index: number) => (
-        <GuessRow
-          guessLength={guessLength}
-          guess={guess}
-          key={index}
-          isCurrentGuess={false}
-          targetWord={targetWord}
-        />
+        <CompletedGuessRow guess={guess} key={index} targetWord={targetWord} />
       ))}
       {displayCurrentGuess && (
-        // TODO: GuessRow could be split into CompletedGuessRow, CurrentGuessRow,
-        // and EmptyGuessRow. This would mean less conditional logic inside one big component
-        <GuessRow
+        <CurrentGuessRow
           guessLength={guessLength}
           invalidGuess={invalidGuess}
-          guess={paddedCurrentGuess}
-          isCurrentGuess
+          guess={currentGuess}
           targetWord={targetWord}
           revealGuessResult={revealGuessResult}
         />
       )}
       {new Array(emptyRows).fill(0).map((_, index) => (
-        <GuessRow
-          guessLength={guessLength}
-          // wordTooShort={wordTooShort && index === currentRowIndex}
-          key={index}
-          isCurrentGuess={false}
-          targetWord={targetWord}
-        />
+        <EmptyGuessRow guessLength={guessLength} key={index} />
       ))}
     </div>
   );
-};
+}
 
 function GameMessage(props: { message: string }) {
   const { message } = props;
@@ -102,5 +69,3 @@ function GameMessage(props: { message: string }) {
     </div>
   );
 }
-
-export default Grid;

@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppSelector } from "../app/hooks";
-import { selectLetterStatuses } from "../features/guesses/guessSlice";
+import { selectLetterStatuses } from "../features/game/gameSlice";
 
 type Props = {
   handleKeyPress: (key: string) => Promise<void>;
@@ -8,7 +8,7 @@ type Props = {
   padSides: boolean;
 };
 
-const KeyboardRow = (props: Props) => {
+export default function KeyboardRow(props: Props) {
   const { keys, padSides, handleKeyPress } = props;
   const letterStatuses = useAppSelector(selectLetterStatuses);
   return (
@@ -52,6 +52,4 @@ const KeyboardRow = (props: Props) => {
       {padSides && <div style={{ flex: 0.38 }} />}
     </div>
   );
-};
-
-export default KeyboardRow;
+}

@@ -5,7 +5,7 @@ import { selectGameStats } from "../features/stats/statsSlice";
 import BaseDialog from "./BaseDialog";
 import StatsChart from "./StatsChart";
 import StatsNumerical from "./StatsNumerical";
-import Tile from "./Tile";
+import StatsRoundComplete from "./StatsRoundComplete";
 
 type Props = {
   open: boolean;
@@ -29,6 +29,10 @@ export default function StatsDialog(props: Props) {
       <section>
         <h4>Guess Distribution</h4>
         <StatsChart guessDistribution={guessDistribution} />
+      </section>
+      <Box sx={{ marginBottom: 2 }} />
+      <section>
+        <StatsRoundComplete />
       </section>
     </BaseDialog>
   );

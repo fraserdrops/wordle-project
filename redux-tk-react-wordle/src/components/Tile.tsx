@@ -1,5 +1,5 @@
 import React from "react";
-import { LetterStatus } from "../features/guesses/guessSlice";
+import { LetterStatus } from "../features/game/gameSlice";
 
 type Props = {
   letter: string;
@@ -11,10 +11,17 @@ type Props = {
 const Tile = (props: Props) => {
   const { letter, status, isRevealing, revealDelay } = props;
   let tileClass = getClassFromStatus(letter, status) + " tile";
-  isRevealing && console.log(tileClass, status);
+  const animationDelay = isRevealing ? revealDelay : 0;
+  // if (letter !== "") {
+  //   tileClass += " cell-fill-animation";
+  // }
+
+  if (isRevealing) {
+    tileClass += " cell-reveal";
+  }
   return (
     <div
-      className={isRevealing ? "tile cell-reveal " + tileClass : tileClass}
+      className={tileClass}
       style={{
         width: "100%",
         aspectRatio: "1 / 1",
@@ -23,12 +30,12 @@ const Tile = (props: Props) => {
         alignItems: "center",
         fontSize: "36px",
         fontWeight: "600",
-        animationDelay: revealDelay + "s",
+        animationDelay: animationDelay + "s",
         borderWidth: 2,
         borderStyle: "solid",
       }}
     >
-      <div className="tile-letter" style={{ animationDelay: revealDelay + "s" }}>
+      <div className="tile-letter" style={{ animationDelay: animationDelay + "s" }}>
         {letter}{" "}
       </div>
     </div>
