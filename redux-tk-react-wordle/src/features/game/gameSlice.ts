@@ -1,9 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AppDispatch, GetState, RootState } from "../../app/store";
 import { WORDS } from "../../constants/wordList";
-import { shareStatus } from "../../shared/shareResults";
-import { dispatchUpdateStats } from "../stats/statsSlice";
 import { MAX_GUESSES } from "../../shared/constants";
+import { dispatchUpdateStats } from "../stats/statsSlice";
 import { setOpenDialog } from "../view/viewSlice";
 
 export type GameStatus = "playing" | "won" | "lost";
@@ -39,10 +38,7 @@ export const REVEAL_ANIMATION_TIME_PER_TILE = 0.35;
 
 export type DiscoveredLetter = { status: LetterStatus; guessIndex: number; letter: string };
 
-export type DiscoveredLetters = Record<
-  string,
-  { status: LetterStatus; guessIndex: number; letter: string }
->;
+export type DiscoveredLetters = Record<string, DiscoveredLetter>;
 
 const initialState: GameState = {
   currentGuess: [],
@@ -50,11 +46,11 @@ const initialState: GameState = {
   guessLength: 5,
   invalidGuess: undefined,
   guesses: [
-    "TEARS".split(""),
-    "TEARS".split(""),
-    "TEARS".split(""),
-    "TEARS".split(""),
-    "TEARS".split(""),
+    // "TEARS".split(""),
+    // "TEARS".split(""),
+    // "TEARS".split(""),
+    // "TEARS".split(""),
+    // "TEARS".split(""),
   ],
   targetWord: "REACT",
   correct: false,
@@ -64,7 +60,7 @@ const initialState: GameState = {
   gameStatus: "playing",
 };
 
-export const guessSlice = createSlice({
+export const gameSlice = createSlice({
   name: "counter",
   initialState,
   reducers: {
@@ -72,7 +68,6 @@ export const guessSlice = createSlice({
       state.currentGuess.push(action.payload.letter);
     },
     deleteLetterFromWord: (state) => {
-      console.log("state.currentGuess", state.currentGuess, state.currentGuess.length);
       if (state.currentGuess.length > 0) {
         state.currentGuess.pop();
       }
@@ -103,6 +98,9 @@ export const guessSlice = createSlice({
     setGameStatus: (state, action: PayloadAction<{ status: GameStatus }>) => {
       state.gameStatus = action.payload.status;
     },
+    setHardMode: (state, action: PayloadAction<{ hardMode: boolean }>) => {
+      state.hardMode = action.payload.hardMode;
+    },
   },
 });
 
@@ -129,19 +127,20 @@ const {
   setCongratsMessage,
   clearCongratsMessage,
   setGameStatus,
-} = guessSlice.actions;
+  setHardMode,
+} = gameSlice.actions;
 
 const submitGuess = () => async (dispatch: AppDispatch, getState: GetState) => {
   const state = getState();
-  const { currentGuess, targetWord, guesses, hardMode } = state.appState;
-  const discoveredLetters = selectLettersDiscovered(state);
+  const { currentGuess, targetWord, guesses, hardMode } = state.gameState;
   let invalidGuess = false;
   let invalidGuessMessage = "";
 
   // check all the cases the guess can be invalid
 
   // guess too short
-  const missingLetterInfo = guessContainsAllDiscoveredLetters(currentGuess, discoveredLetters);
+  // const missingLetterInfo = guessContainsAllDiscoveredLetters(currentGuess, discoveredLetters);
+  const missingLetterInfo = guessContainsAllDiscoveredLetters(currentGuess, guesses, targetWord);
   if (currentGuess.length < WORD_LENGTH) {
     invalidGuess = true;
     invalidGuessMessage = "Word too short";
@@ -186,60 +185,16 @@ const submitGuess = () => async (dispatch: AppDispatch, getState: GetState) => {
   }
 };
 
-export const shareResults = () => async (dispatch: AppDispatch, getState: GetState) => {
-  const { guesses, targetWord, hardMode } = getState().appState;
-  const guessStatuses = selectGuessStatuses(getState());
-  console.log("sharing");
-  shareStatus(guessStatuses, false, hardMode, false, false, 2, () => {});
-};
-
 function getCongratsMessage(incorrectGuesses: number) {
   const messages = ["Genius", "Amazing", "Great", "Good", "Nice", "Close one"];
   return messages[incorrectGuesses];
-}
-// check that every discovered letter is present in the guess
-function guessContainsAllDiscoveredLetters(guess: Guess, discoveredLetters: DiscoveredLetters) {
-  // we want to find what letters are known to be present, but the player hasn't included in the guess
-  const presentLetters = Object.values(discoveredLetters).filter(
-    ({ status }) => status === "present"
-  );
-
-  // remove letters from the array as we discovered they were included in the guess
-  let presentLettersNotInGuess = [...presentLetters];
-  guess.forEach((letter) => {
-    const index = presentLettersNotInGuess.findIndex(
-      (presentLetter) => presentLetter.letter === letter
-    );
-    if (index >= 0) {
-      presentLettersNotInGuess.splice(index, 1);
-    }
-  });
-
-  // we want to know what letters are known to be correct, but aren't included in the right position in the guess
-  const correctLettersWithIndex = Object.values(discoveredLetters).filter(
-    ({ status }) => status === "correct"
-  );
-  let correctLettersNotInGuess: Array<DiscoveredLetter> = [];
-  correctLettersWithIndex.forEach((correctLetter) => {
-    if (guess[correctLetter.guessIndex] !== correctLetter.letter) {
-      correctLettersNotInGuess.push(correctLetter);
-    }
-  });
-
-  const lettersMissing = correctLettersNotInGuess.length + presentLettersNotInGuess.length > 0;
-
-  return {
-    lettersMissing,
-    correctLetters: correctLettersNotInGuess,
-    presentLetters: presentLettersNotInGuess,
-  };
 }
 
 function getGuessDiscoveredLettersErrorMesaage(missingLetterInfo: MissingLetterInfo) {
   let errorMessage = "";
   if (missingLetterInfo.correctLetters.length > 0) {
     const { letter, guessIndex } = missingLetterInfo.correctLetters[0];
-    return ordinal_suffix_of(guessIndex + 1) + " must be " + letter;
+    return ordinal_suffix_of(guessIndex + 1) + " letter must be " + letter;
   }
 
   if (missingLetterInfo.presentLetters.length > 0) {
@@ -261,7 +216,7 @@ const reportInvalidGuess =
 export const handleKeyPress =
   ({ key }: { key: string }) =>
   async (dispatch: AppDispatch, getState: GetState) => {
-    const { currentGuess, invalidGuess, gameStatus } = getState().appState;
+    const { currentGuess, invalidGuess, gameStatus } = getState().gameState;
     const keyValue = getKeyCodeFromKey(key).toLocaleUpperCase();
 
     if (gameStatus !== "playing") {
@@ -303,7 +258,7 @@ function getKeyCodeFromKey(key: string): string {
   return key;
 }
 
-export default guessSlice.reducer;
+export default gameSlice.reducer;
 
 export function getLetterStatusFromGuess(
   targetWord: string,
@@ -321,49 +276,155 @@ export function getLetterStatusFromGuess(
   return "absent";
 }
 
-export function selectLettersDiscovered(state: RootState) {
-  const { guesses, targetWord } = state.appState;
-  return getLettersDiscovered(guesses, targetWord);
-}
+export function getLetterStatusesFromGuess(guess: Guess, targetWord: string) {
+  const targetWordNotFound = targetWord.split("");
+  const correctLetters: Array<DiscoveredLetter> = [];
+  const presentLetters: Array<DiscoveredLetter> = [];
+  const absentLetters = [];
+  const guessLetterStatuses: Array<LetterStatus> = [];
+  // find all the correct letters in the guess
+  guess.forEach((letter, guessIndex) => {
+    if (targetWord[guessIndex] === letter) {
+      // this letter is correct
+      correctLetters.push({ status: "correct", guessIndex, letter });
+      guessLetterStatuses[guessIndex] = "correct";
 
-function getLettersDiscovered(guesses: Array<Guess>, targetWord: string) {
-  const lettersDiscovered: DiscoveredLetters = {};
-  guesses.forEach((guess) => {
-    guess.forEach((letter, index) => {
-      const statusFromGuess = getLetterStatusFromGuess(targetWord, letter, index);
-      const letterKey = letter + "_" + index;
-      const previousResult = lettersDiscovered[letterKey];
-      if (!previousResult || shouldOverwriteStatus(previousResult.status, statusFromGuess)) {
-        lettersDiscovered[letterKey] = { status: statusFromGuess, guessIndex: index, letter };
-      }
-    });
+      // we've found this in the target word
+      targetWordNotFound.splice(guessIndex, 1);
+    }
   });
 
-  return lettersDiscovered;
+  guess.forEach((letter, guessIndex) => {
+    if (targetWord[guessIndex] !== letter) {
+      // this letter is correct
+      const index = targetWordNotFound.findIndex((targetWordLetter) => targetWordLetter === letter);
+      if (index >= 0) {
+        // we've found this in the target word
+        targetWordNotFound.splice(index, 1);
+        presentLetters.push({ status: "present", guessIndex, letter });
+        guessLetterStatuses[guessIndex] = "present";
+      } else {
+        absentLetters.push({ status: "absent", guessIndex, letter });
+        guessLetterStatuses[guessIndex] = "absent";
+      }
+    }
+  });
+
+  return guessLetterStatuses;
 }
 
-export function selectLetterStatuses(state: RootState) {
-  const { guesses, targetWord } = state.appState;
-  const lettersDiscovered = getLettersDiscovered(guesses, targetWord);
-  const letterStatuses: Record<string, LetterStatus> = {};
-  Object.values(lettersDiscovered).forEach((letterDiscovered) => {
-    const { status, letter } = letterDiscovered;
-    const previousResult = letterStatuses[letter];
-    if (!previousResult || shouldOverwriteStatus(previousResult, status)) {
-      letterStatuses[letter] = status;
+// find all the correct letters
+// find any letters that were discovered to be present, that havne't been found to be correct
+// need to include duplicates, so check if it's correct if theres another of the same letter known to be present
+function guessContainsAllDiscoveredLetters(
+  guess: Guess,
+  guesses: Array<Guess>,
+  targetWord: string
+) {
+  // const correctLetters: DiscoveredLetters = {};
+  if (guesses.length === 0) {
+    // no previous guesses
+    return {};
+  }
+  const previousGuess = guesses[guesses.length - 1];
+
+  const targetWordNotFound = targetWord.split("");
+  const correctLetters: Array<DiscoveredLetter> = [];
+  const presentLetters: Array<DiscoveredLetter> = [];
+  const absentLetters = [];
+  // find all the correct letters in the guess
+  previousGuess.forEach((letter, index) => {
+    if (targetWord[index] === letter) {
+      // this letter is correct
+      correctLetters.push({ status: "correct", guessIndex: index, letter });
+
+      // we've found this in the target word
+      targetWordNotFound[index] == "";
     }
+  });
+
+  previousGuess.forEach((letter, guessIndex) => {
+    if (targetWord[guessIndex] !== letter) {
+      // this letter is correct
+      const index = targetWordNotFound.findIndex((targetWordLetter) => targetWordLetter === letter);
+      if (index >= 0) {
+        // we've found this in the target word
+        targetWordNotFound[index] == "";
+        presentLetters.push({ status: "present", guessIndex, letter });
+      } else {
+        absentLetters.push({ status: "absent", guessIndex, letter });
+      }
+    }
+  });
+
+  let correctLettersNotInGuess: Array<DiscoveredLetter> = [];
+  let presentLettersNotInGuess: Array<DiscoveredLetter> = [];
+
+  let guessLettersNotFound = [...guess];
+
+  correctLetters.forEach((correctLetter) => {
+    if (guess[correctLetter.guessIndex] !== correctLetter.letter) {
+      correctLettersNotInGuess.push(correctLetter);
+    } else {
+      guessLettersNotFound[correctLetter.guessIndex] = "";
+    }
+  });
+
+  presentLetters.forEach((presentLetter) => {
+    const index = guessLettersNotFound.findIndex(
+      (guessLetter) => guessLetter === presentLetter.letter
+    );
+    if (index >= 0) {
+      // we've found this in the target word
+      guessLettersNotFound[index] = "";
+    } else {
+      presentLettersNotInGuess.push(presentLetter);
+    }
+  });
+
+  const lettersMissing = correctLettersNotInGuess.length + presentLettersNotInGuess.length > 0;
+  return {
+    lettersMissing,
+    correctLetters: correctLettersNotInGuess,
+    presentLetters: presentLettersNotInGuess,
+  };
+}
+
+/**
+ * Returns the highest priority status that's been discovered for each letter
+ * @param state redux state
+ * @returns statuses for each letter
+ */
+export function selectLetterStatuses(state: RootState) {
+  const { guesses, targetWord } = state.gameState;
+  const letterStatuses: Record<string, LetterStatus> = {};
+
+  guesses.forEach((guess) => {
+    const letterStatusesFromGuess = getLetterStatusesFromGuess(guess, targetWord);
+    guess.forEach((letter, index) => {
+      const statusFromGuess = letterStatusesFromGuess[index];
+      const previousResult = letterStatuses[letter];
+      if (!previousResult || shouldOverwriteStatus(previousResult, statusFromGuess)) {
+        letterStatuses[letter] = statusFromGuess;
+      }
+    });
   });
 
   return letterStatuses;
 }
 
-export function selectGuessStatuses(state: RootState) {
-  const { guesses, targetWord } = state.appState;
-  return guesses.map((guess) => {
-    return guess.map((letter, index) => {
-      return getLetterStatusFromGuess(targetWord, letter, index);
-    });
-  });
+export const toggleHardMode = () => async (dispatch: AppDispatch, getState: GetState) => {
+  const state = getState();
+  if (selectHardModeCanBeChanged(state)) {
+    const { hardMode } = state.gameState;
+    dispatch(setHardMode({ hardMode: !hardMode }));
+  }
+};
+
+// can't change hard mode during a round
+export function selectHardModeCanBeChanged(getState: RootState) {
+  const { guesses, gameStatus } = getState.gameState;
+  return guesses.length === 0 || gameStatus !== "playing";
 }
 
 // True we discover more information about a letter than we had before

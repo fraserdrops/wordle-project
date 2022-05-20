@@ -13,6 +13,7 @@ const StatsChart = (props: Props) => {
       {guessDistribution.map((guessCount, guessIndex) => {
         return (
           <StatsChartItem
+            key={guessIndex + 1}
             numGuesses={guessIndex + 1}
             barPercentage={guessCount / maxGuessCount}
             guessCount={guessCount}
@@ -44,7 +45,7 @@ function StatsChartItem(props: StatsItemProps) {
           style={{
             width: `max(20px, ${barWidthPercentage + "%"})`,
             position: "relative",
-            background: guessCount > 0 ? "blue" : "grey",
+            background: guessCount > 0 ? "#787c7e" : "grey",
             height: "100%",
             color: "white",
             lineHeight: "20px",

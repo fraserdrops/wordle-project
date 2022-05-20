@@ -3,18 +3,19 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { IconButton } from "@mui/material";
-import { Dialogs } from "../App";
+import { Dialogs } from "../features/view/viewSlice";
 
 type Props = {
   handleOpenDialog: (dialog: Dialogs) => void;
 };
-const HeaderBar = (props: Props) => {
+
+export default function HeaderBar(props: Props) {
   const { handleOpenDialog } = props;
   return (
     <div
       style={{
         height: "var(--header-bar-height)",
-        borderBottom: "1px solid #d3d6da",
+        borderBottom: "1px solid var(--border-color)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
@@ -37,6 +38,4 @@ const HeaderBar = (props: Props) => {
       </div>
     </div>
   );
-};
-
-export default HeaderBar;
+}

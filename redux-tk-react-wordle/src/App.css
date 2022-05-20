@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  background-color: var(--background-color);
 }
 
 html,
@@ -9,23 +10,39 @@ body {
 
 :root {
   --header-bar-height: 51px;
+  --background-color: white;
+  --border-color: #d3d6da;
   --default-cell-bg-color: white;
   --default-cell-border-color: #d3d6da;
   --default-cell-text-color: #d3d6da;
+  --unknown-cell-border-color: black;
+  --unknown-cell-text-color: black;
+  --unknown-cell-bg-color: white;
   --absent-color: #787c7e;
   --correct-color: #6aaa64;
   --present-color: #c9b458;
+  --key-background: #e3e3e3;
+  --text-color: black;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+[data-theme="dark"] {
+  --background-color: #121213;
+  --border-color: #3a3a3c;
+  --absent-color: #3a3a3c;
+  --key-background: #818384;
+  --text-color: white;
+  --unknown-cell-border-color: #565758;
+  --unknown-cell-text-color: var(--text-color);
+  --unknown-cell-bg-color: var(--background-color);
+}
+
+[data-contrast="high"] {
+  --correct-color: #f5793a;
+  --present-color: #85c0f9;
+}
+
+.next-round-countdown {
+  font-size: 34px;
 }
 
 button {
@@ -84,8 +101,9 @@ button {
 }
 
 .unknown {
-  background-color: white;
-  border-color: black;
+  background-color: var(--background-color);
+  border-color: var(--unknown-cell-border-color);
+  color: var(--text-color);
 }
 
 .key {
@@ -93,11 +111,11 @@ button {
 }
 
 .unknown.key {
-  background-color: #e3e3e3;
+  background-color: var(--key-background);
 }
 
 .empty.tile {
-  border-color: #d3d6da;
+  border-color: var(--border-color);
 }
 
 .present {
@@ -133,14 +151,14 @@ button {
 @keyframes revealAbsentCharCell {
   0% {
     transform: rotateX(0deg);
-    background-color: var(--default-cell-bg-color);
-    border-color: var(--default-cell-border-color);
-    color: var(--default-cell-text-color);
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
   }
   50% {
-    background-color: var(--default-cell-bg-color);
-    border-color: var(--default-cell-border-color);
-    color: var(--default-cell-text-color);
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
   }
   50.1% {
     background-color: var(--absent-color);
@@ -154,14 +172,14 @@ button {
 @keyframes revealCorrectCharCell {
   0% {
     transform: rotateX(0deg);
-    background-color: var(--default-cell-bg-color);
-    border-color: var(--default-cell-border-color);
-    color: var(--default-cell-text-color);
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
   }
   50% {
-    background-color: var(--default-cell-bg-color);
-    border-color: var(--default-cell-border-color);
-    color: var(--default-cell-text-color);
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
   }
   50.1% {
     background-color: var(--correct-color);
@@ -175,14 +193,14 @@ button {
 @keyframes revealPresentCharCell {
   0% {
     transform: rotateX(0deg);
-    background-color: var(--default-cell-bg-color);
-    border-color: var(--default-cell-border-color);
-    color: var(--default-cell-text-color);
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
   }
   50% {
-    background-color: var(--default-cell-bg-color);
-    border-color: var(--default-cell-border-color);
-    color: var(--default-cell-text-color);
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
   }
   50.1% {
     background-color: var(--present-color);
@@ -201,6 +219,11 @@ button {
   100% {
     transform: rotateX(180deg);
   }
+}
+
+.cell-fill-animation {
+  animation: onTypeCell linear;
+  animation-duration: 0.35s;
 }
 
 @keyframes onTypeCell {

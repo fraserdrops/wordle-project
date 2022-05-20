@@ -1,4 +1,4 @@
-import { Guess, LetterStatus } from "../features/guesses/guessSlice";
+import { Guess, LetterStatus } from "../features/game/gameSlice";
 import { MAX_GUESSES } from "./constants";
 
 export const shareStatus = (

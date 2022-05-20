@@ -6,7 +6,7 @@ export default function MessagePopup(props: { message: string }) {
         background: "black",
         color: "white",
         zIndex: 10,
-        height: 30,
+        minHeight: 30,
         borderRadius: 5,
       }}
     >

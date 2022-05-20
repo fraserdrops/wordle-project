@@ -7,7 +7,7 @@ type Props = {
   longestStreak: number;
 };
 
-const StatsNumerical = (props: Props) => {
+export default function StatsNumerical(props: Props) {
   const { gamesPlayed, winRatio, currentStreak, longestStreak } = props;
   return (
     <div style={{ display: "flex" }}>
@@ -17,9 +17,7 @@ const StatsNumerical = (props: Props) => {
       <StatsNumericalItem stat={longestStreak} label="Max Streak" />
     </div>
   );
-};
-
-export default StatsNumerical;
+}
 
 type StatsItemProps = {
   stat: number;

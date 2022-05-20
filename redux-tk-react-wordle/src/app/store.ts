@@ -1,11 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
-import guessReducer from "../features/guesses/guessSlice";
+import gameReduce from "../features/game/gameSlice";
 import statsReducer from "../features/stats/statsSlice";
 import viewReducer from "../features/view/viewSlice";
 
 export const store = configureStore({
   reducer: {
-    appState: guessReducer,
+    gameState: gameReduce,
     statsState: statsReducer,
     viewState: viewReducer,
   },

@@ -35,6 +35,15 @@ export default function BaseDialog(props: Props) {
       <Box
         sx={{
           padding: 3,
+          s: {
+            paddingLeft: 5,
+            paddingRight: 5,
+          },
+
+          xs: {
+            paddingLeft: 3,
+            paddingRight: 3,
+          },
           textAlign: "center",
         }}
       >
