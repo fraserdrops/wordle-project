@@ -32,13 +32,6 @@ const initialState: SavedStats = {
 };
 
 const getInitialState = () => {
-  saveStatsToLocalStorage({
-    guessDistribution: [1, 2, 3, 4, 5],
-    gamesPlayed: 10,
-    gamesWon: 5,
-    currentStreak: 2,
-    longestStreak: 4,
-  });
   return loadStatsFromLocalStorage() ?? initialState;
 };
 
@@ -54,7 +47,7 @@ export const statsSlice = createSlice({
         // game lost
         state.currentStreak = 0;
       } else {
-        state.guessDistribution[incorrectGuesses - 1] += 1;
+        state.guessDistribution[incorrectGuesses] += 1;
         state.gamesWon += 1;
         state.currentStreak += 1;
         state.longestStreak = Math.max(state.currentStreak, state.longestStreak);
@@ -64,7 +57,6 @@ export const statsSlice = createSlice({
   },
 });
 
-// Action creators are generated for each case reducer function
 const { updateStats } = statsSlice.actions;
 
 export default statsSlice.reducer;
@@ -73,16 +65,11 @@ export const saveStatsToLocalStorage = (stats: SavedStats) => {
   localStorage.setItem(STATS_LOCAL_STORAGE_KEY, JSON.stringify(stats));
 };
 
-export const dispatchSaveStatsToLocalStorage =
-  () => async (dispatch: AppDispatch, getState: GetState) => {
-    const stats = getState().statsState;
-    saveStatsToLocalStorage(stats);
-  };
-
 export const dispatchUpdateStats =
   (incorrectGuesses: number) => async (dispatch: AppDispatch, getState: GetState) => {
     dispatch(updateStats({ incorrectGuesses }));
-    dispatch(dispatchSaveStatsToLocalStorage);
+    const stats = getState().statsState;
+    saveStatsToLocalStorage(stats);
   };
 
 export function selectGameStats(state: RootState): GameStats {

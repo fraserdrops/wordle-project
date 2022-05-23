@@ -35,7 +35,7 @@ type StatsItemProps = {
 
 function StatsChartItem(props: StatsItemProps) {
   const { numGuesses, barPercentage, guessCount } = props;
-  const barWidthPercentage = Math.max(barPercentage * 100, 5);
+  const barWidthPercentage = Boolean(barPercentage) ? Math.max(barPercentage * 100, 5) : 5;
   const labelRightPosition = 5;
   return (
     <div style={{ display: "flex", position: "relative", gap: 5 }}>
