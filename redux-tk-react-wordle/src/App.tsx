@@ -8,7 +8,7 @@ import Keyboard from "./components/Keyboard";
 import SettingsDialog from "./components/SettingsDialog";
 import StatsDialog from "./components/StatsDialog";
 import { handleKeyPress } from "./features/game/gameSlice";
-import { closeDialog, setOpenDialog } from "./features/view/viewSlice";
+import { closeDialog, openDialogOnAppLoad, setOpenDialog } from "./features/view/viewSlice";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { red, blue } from "@mui/material/colors";
 
@@ -51,6 +51,10 @@ function App() {
       }),
     [darkMode, highContrastMode]
   );
+
+  useEffect(() => {
+    dispatch(openDialogOnAppLoad());
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>

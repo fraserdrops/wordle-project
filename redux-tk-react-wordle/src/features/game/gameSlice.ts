@@ -2,13 +2,21 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AppDispatch, GetState, RootState } from "../../app/store";
 import { WORDS } from "../../constants/wordList";
 import { MAX_GUESSES } from "../../shared/constants";
+import { isLetter, isSameDay, isSameMinute, ordinal_suffix_of } from "../../shared/util";
 import { dispatchUpdateStats } from "../stats/statsSlice";
 import { setOpenDialog } from "../view/viewSlice";
 
 export type GameStatus = "playing" | "won" | "lost";
 
+type SavedGameState = {
+  guesses: Guesses;
+  dateString: string;
+  roundFrequency: RoundFrequency;
+  targetWord: string;
+};
+
 export interface GameState {
-  guesses: Array<Guess>;
+  guesses: Guesses;
   maxGuesses: number;
   guessLength: number;
   currentGuess: Guess;
@@ -19,12 +27,15 @@ export interface GameState {
   invalidGuess: InvalidGuessInfo | undefined;
   congrats: string | undefined;
   gameStatus: GameStatus;
+  roundFrequency: RoundFrequency;
 }
 type CorrectLetterStatus = "correct";
 
 export type LetterStatus = "absent" | "present" | CorrectLetterStatus | "unknown";
 
 export type Guess = Array<string>;
+
+type Guesses = Array<Guess>;
 
 export type InvalidGuessInfo = { message: string };
 
@@ -40,29 +51,116 @@ export type DiscoveredLetter = { status: LetterStatus; guessIndex: number; lette
 
 export type DiscoveredLetters = Record<string, DiscoveredLetter>;
 
-const initialState: GameState = {
+export type RoundFrequency = "24hr" | "1min";
+
+const GAME_LOCAL_STORAGE_KEY = "game";
+const EPOCH_DATE = new Date(2022, 0);
+
+const getInitialState = () => {
+  const savedGameJSON = localStorage.getItem(GAME_LOCAL_STORAGE_KEY);
+
+  if (savedGameJSON) {
+    const savedGame: SavedGameState = JSON.parse(savedGameJSON);
+    const { roundFrequency, guesses } = savedGame;
+    const savedDate = new Date(savedGame.dateString);
+    const today = new Date();
+    if (isSameRound(savedDate, today, roundFrequency)) {
+      let targetWord = savedGame.targetWord;
+      if (roundFrequency === "24hr") {
+        // this is so if we were debugging we go back to using the right word in 24hr time
+        targetWord = getTodaysWord();
+      }
+      return createGameStateForRound(targetWord, roundFrequency, guesses);
+    } else {
+      const targetWord = getNextMinutesWord();
+      return createGameStateForRound(targetWord, roundFrequency);
+    }
+  }
+  const targetWord = getTodaysWord();
+
+  return createGameStateForRound(targetWord);
+};
+
+function isSameRound(savedDate: Date, today: Date, roundFrequency: RoundFrequency) {
+  if (roundFrequency === "1min") {
+    return isSameMinute(savedDate, today);
+  }
+
+  if (roundFrequency === "24hr") {
+    return isSameDay(savedDate, today);
+  }
+
+  return isSameDay(savedDate, today);
+}
+
+const baseState: GameState = {
   currentGuess: [],
   maxGuesses: MAX_GUESSES,
   guessLength: 5,
   invalidGuess: undefined,
-  guesses: [
-    // "TEARS".split(""),
-    // "TEARS".split(""),
-    // "TEARS".split(""),
-    // "TEARS".split(""),
-    // "TEARS".split(""),
-  ],
+  guesses: [],
   targetWord: "REACT",
   correct: false,
   revealGuessResult: false,
   hardMode: true,
   congrats: undefined,
   gameStatus: "playing",
+  roundFrequency: "24hr",
 };
+
+function createGameStateForRound(
+  targetWord: string,
+  roundFrequency: RoundFrequency = "24hr",
+  guesses?: Guesses
+): GameState {
+  if (guesses) {
+    let gameStatus: GameStatus = "playing";
+    let congrats = "";
+    if (guesses.find((guess) => guess.join("") === targetWord)) {
+      gameStatus = "won";
+      congrats = getCongratsMessage(guesses.length - 1);
+    } else if (guesses.length >= MAX_GUESSES) {
+      gameStatus = "lost";
+    }
+    return { ...baseState, targetWord, roundFrequency, guesses, gameStatus, congrats };
+  }
+
+  return { ...baseState, targetWord, roundFrequency };
+}
+
+export function getWordIndexForDate(date: Date) {
+  const zeroDate = new Date(date);
+  zeroDate.setHours(0, 0, 0, 0);
+  const difference = zeroDate.getTime() - EPOCH_DATE.getTime();
+  const totalDays = Math.ceil(difference / (1000 * 3600 * 24));
+  return totalDays;
+}
+
+function getNextMinutesWord() {
+  const today = new Date();
+  const index = getWordIndexForDate(new Date());
+  const indexWithMins = index + 60 * today.getHours() + today.getMinutes();
+  return WORDS[indexWithMins].toUpperCase();
+}
+
+function getTodaysWord() {
+  const today = new Date();
+  const index = getWordIndexForDate(today);
+  return WORDS[index].toUpperCase();
+}
+
+const saveGameState =
+  (targetWord: string, guesses: Guesses, roundFrequency: RoundFrequency) =>
+  async (dispatch: AppDispatch, getState: GetState) => {
+    localStorage.setItem(
+      GAME_LOCAL_STORAGE_KEY,
+      JSON.stringify({ guesses, dateString: new Date().toJSON(), roundFrequency, targetWord })
+    );
+  };
 
 export const gameSlice = createSlice({
   name: "counter",
-  initialState,
+  initialState: getInitialState,
   reducers: {
     addLetterToWord: (state, action: PayloadAction<{ letter: string }>) => {
       state.currentGuess.push(action.payload.letter);
@@ -101,21 +199,23 @@ export const gameSlice = createSlice({
     setHardMode: (state, action: PayloadAction<{ hardMode: boolean }>) => {
       state.hardMode = action.payload.hardMode;
     },
+    newRoundWithRandomWord: () => {
+      const randomWord = WORDS[Math.floor(Math.random() * WORDS.length)].toUpperCase();
+      return createGameStateForRound(randomWord);
+    },
+    newRoundWithCustomWord: (state, action: PayloadAction<{ word: string }>) => {
+      return createGameStateForRound(action.payload.word);
+    },
+    setRoundFrequency: (state, action: PayloadAction<{ frequency: RoundFrequency }>) => {
+      state.roundFrequency = action.payload.frequency;
+    },
   },
 });
-
-const getKeyDisplayFromKeyValue = (keyValue: string) => {
-  return keyValue.toUpperCase();
-};
-
-const isLetter = (keyValue: string) => {
-  return keyValue.length === 1 && /[a-zA-Z]/.test(keyValue);
-};
 
 export const WORD_LENGTH = 5;
 
 // Action creators are generated for each case reducer function
-const {
+export const {
   addLetterToWord,
   deleteLetterFromWord,
   addGuess,
@@ -128,18 +228,20 @@ const {
   clearCongratsMessage,
   setGameStatus,
   setHardMode,
+  newRoundWithRandomWord,
+  newRoundWithCustomWord,
+  setRoundFrequency,
 } = gameSlice.actions;
 
 const submitGuess = () => async (dispatch: AppDispatch, getState: GetState) => {
   const state = getState();
-  const { currentGuess, targetWord, guesses, hardMode } = state.gameState;
+  const { currentGuess, targetWord, guesses, hardMode, roundFrequency } = state.gameState;
   let invalidGuess = false;
   let invalidGuessMessage = "";
 
   // check all the cases the guess can be invalid
 
   // guess too short
-  // const missingLetterInfo = guessContainsAllDiscoveredLetters(currentGuess, discoveredLetters);
   const missingLetterInfo = guessContainsAllDiscoveredLetters(currentGuess, guesses, targetWord);
   if (currentGuess.length < WORD_LENGTH) {
     invalidGuess = true;
@@ -155,35 +257,45 @@ const submitGuess = () => async (dispatch: AppDispatch, getState: GetState) => {
   if (invalidGuess) {
     dispatch(reportInvalidGuess({ message: invalidGuessMessage }));
   } else {
+    dispatch(saveGameState(targetWord, [...guesses, currentGuess], roundFrequency));
+    const isCorrect = currentGuess.join("") === targetWord;
+    if (isCorrect) {
+      dispatch(dispatchUpdateStats(guesses.length));
+    }
     dispatch(revealGuessResult());
     setTimeout(() => {
       dispatch(endGuessReveal());
       if (currentGuess.join("") === targetWord) {
+        // correct
         dispatch(setGameStatus({ status: "won" }));
         dispatch(setCorrect());
-        dispatch(dispatchUpdateStats(guesses.length));
         dispatch(setCongratsMessage({ message: getCongratsMessage(guesses.length) }));
         setTimeout(() => {
           dispatch(clearCongratsMessage());
           dispatch(setOpenDialog({ dialog: "stats" }));
-        }, 4000);
-        // dispatch()
-        // correct
+        }, 3000);
       } else {
         // incorrect
         if (guesses.length + 1 === MAX_GUESSES) {
+          // game over
           dispatch(dispatchUpdateStats(guesses.length + 1));
           dispatch(setGameStatus({ status: "lost" }));
-
-          // game over
+          setTimeout(() => {
+            dispatch(setOpenDialog({ dialog: "stats" }));
+          }, 3000);
         }
       }
       dispatch(addGuess({ guess: currentGuess }));
     }, REVEAL_ANIMATION_TIME_PER_TILE * WORD_LENGTH * 1000);
-    // dispatch(addGuess({ guess: currentGuess }));
-    // submit
   }
 };
+
+export const updateRoundFrequency =
+  (roundFrequency: RoundFrequency) => async (dispatch: AppDispatch, getState: GetState) => {
+    const { guesses, targetWord } = getState().gameState;
+    dispatch(setRoundFrequency({ frequency: roundFrequency }));
+    dispatch(saveGameState(targetWord, guesses, roundFrequency));
+  };
 
 function getCongratsMessage(incorrectGuesses: number) {
   const messages = ["Genius", "Amazing", "Great", "Good", "Nice", "Close one"];
@@ -316,11 +428,7 @@ export function getLetterStatusesFromGuess(guess: Guess, targetWord: string) {
 // find all the correct letters
 // find any letters that were discovered to be present, that havne't been found to be correct
 // need to include duplicates, so check if it's correct if theres another of the same letter known to be present
-function guessContainsAllDiscoveredLetters(
-  guess: Guess,
-  guesses: Array<Guess>,
-  targetWord: string
-) {
+function guessContainsAllDiscoveredLetters(guess: Guess, guesses: Guesses, targetWord: string) {
   // const correctLetters: DiscoveredLetters = {};
   if (guesses.length === 0) {
     // no previous guesses
@@ -433,19 +541,4 @@ function shouldOverwriteStatus(previousStatus: LetterStatus, currentStatus: Lett
   let previousStatusPriority = statusOrder.indexOf(previousStatus);
   let currentStatusPriority = statusOrder.indexOf(currentStatus);
   return currentStatusPriority > previousStatusPriority;
-}
-
-function ordinal_suffix_of(i: number) {
-  var j = i % 10,
-    k = i % 100;
-  if (j == 1 && k != 11) {
-    return i + "st";
-  }
-  if (j == 2 && k != 12) {
-    return i + "nd";
-  }
-  if (j == 3 && k != 13) {
-    return i + "rd";
-  }
-  return i + "th";
 }
