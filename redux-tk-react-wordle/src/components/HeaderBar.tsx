@@ -5,6 +5,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import { IconButton } from "@mui/material";
 import { Dialogs } from "../features/view/viewSlice";
+import { HOST_REPO } from "../shared/constants";
 
 type Props = {
   handleOpenDialog: (dialog: Dialogs) => void;
@@ -27,14 +28,7 @@ export default function HeaderBar(props: Props) {
         <IconButton aria-label="help" onClick={() => handleOpenDialog("help")}>
           <HelpOutlineIcon />
         </IconButton>
-        <IconButton
-          aria-label="help"
-          onClick={() =>
-            window.location.assign(
-              "https://github.com/fraserdrops/wordle-project/tree/pure/redux-tk-react-wordle"
-            )
-          }
-        >
+        <IconButton aria-label="help" onClick={() => window.location.assign(HOST_REPO)}>
           <GitHubIcon />
         </IconButton>
       </div>

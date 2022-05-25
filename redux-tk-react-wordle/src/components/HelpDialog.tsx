@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
 import * as React from "react";
+import { HOST_REPO } from "../shared/constants";
 import BaseDialog from "./BaseDialog";
 import Tile from "./Tile";
 
@@ -87,6 +88,13 @@ export default function HelpDialog(props: Props) {
           </div>
         </Box>
         <p style={{ marginTop: 3 }}>The letter U is not in the word in any spot.</p>
+      </section>
+      <section>
+        <p>
+          This is an open-source clone of the Wordle game made for educational purposes.{" "}
+          <a href="https://www.nytimes.com/games/wordle/index.html">Play the original</a>. This is
+          the <a href={HOST_REPO}>React/Redux Toolkit implementation</a>.
+        </p>
       </section>
     </BaseDialog>
   );

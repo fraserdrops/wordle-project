@@ -22,13 +22,13 @@ import {
   selectHardModeCanBeChanged,
   toggleHardMode,
   updateRoundFrequency,
-  WORD_LENGTH,
 } from "../features/game/gameSlice";
 import {
   clearLocalStorage,
   toggleDarkMode,
   toggleHighContrastMode,
 } from "../features/view/viewSlice";
+import { WORD_LENGTH } from "../shared/constants";
 import BaseDialog from "./BaseDialog";
 
 type Props = {

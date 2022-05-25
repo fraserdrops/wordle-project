@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { AppDispatch, GetState, RootState } from "../../app/store";
 import { WORDS } from "../../constants/wordList";
-import { MAX_GUESSES } from "../../shared/constants";
+import { MAX_GUESSES, WORD_LENGTH } from "../../shared/constants";
 import { isLetter, isSameDay, isSameMinute, ordinal_suffix_of } from "../../shared/util";
 import { dispatchUpdateStats } from "../stats/statsSlice";
 import { setOpenDialog } from "../view/viewSlice";
@@ -212,8 +212,6 @@ export const gameSlice = createSlice({
   },
 });
 
-export const WORD_LENGTH = 5;
-
 // Action creators are generated for each case reducer function
 export const {
   addLetterToWord,
@@ -240,8 +238,6 @@ const submitGuess = () => async (dispatch: AppDispatch, getState: GetState) => {
   let invalidGuessMessage = "";
 
   // check all the cases the guess can be invalid
-
-  // guess too short
   const missingLetterInfo = guessContainsAllDiscoveredLetters(currentGuess, guesses, targetWord);
   if (currentGuess.length < WORD_LENGTH) {
     invalidGuess = true;
@@ -302,6 +298,11 @@ function getCongratsMessage(incorrectGuesses: number) {
   return messages[incorrectGuesses];
 }
 
+/**
+ * Gets the error message for player not using required letters
+ * @param missingLetterInfo
+ * @returns error message
+ */
 function getGuessDiscoveredLettersErrorMesaage(missingLetterInfo: MissingLetterInfo) {
   let errorMessage = "";
   if (missingLetterInfo.correctLetters.length > 0) {
@@ -372,22 +373,12 @@ function getKeyCodeFromKey(key: string): string {
 
 export default gameSlice.reducer;
 
-export function getLetterStatusFromGuess(
-  targetWord: string,
-  letter: string,
-  index: number
-): LetterStatus {
-  if (targetWord.split("")[index] === letter) {
-    return "correct";
-  }
-
-  if (targetWord.includes(letter)) {
-    return "present";
-  }
-
-  return "absent";
-}
-
+/**
+ * Get status for each letter in a given guess
+ * @param guess Guess to get letter statuses
+ * @param targetWord current target word
+ * @returns
+ */
 export function getLetterStatusesFromGuess(guess: Guess, targetWord: string) {
   const targetWordNotFound = targetWord.split("");
   const correctLetters: Array<DiscoveredLetter> = [];
@@ -402,7 +393,7 @@ export function getLetterStatusesFromGuess(guess: Guess, targetWord: string) {
       guessLetterStatuses[guessIndex] = "correct";
 
       // we've found this in the target word
-      targetWordNotFound.splice(guessIndex, 1);
+      targetWordNotFound[guessIndex] = "";
     }
   });
 
@@ -412,7 +403,7 @@ export function getLetterStatusesFromGuess(guess: Guess, targetWord: string) {
       const index = targetWordNotFound.findIndex((targetWordLetter) => targetWordLetter === letter);
       if (index >= 0) {
         // we've found this in the target word
-        targetWordNotFound.splice(index, 1);
+        targetWordNotFound[guessIndex] = "";
         presentLetters.push({ status: "present", guessIndex, letter });
         guessLetterStatuses[guessIndex] = "present";
       } else {
@@ -447,7 +438,7 @@ function guessContainsAllDiscoveredLetters(guess: Guess, guesses: Guesses, targe
       correctLetters.push({ status: "correct", guessIndex: index, letter });
 
       // we've found this in the target word
-      targetWordNotFound[index] == "";
+      targetWordNotFound[index] = "";
     }
   });
 
@@ -457,7 +448,7 @@ function guessContainsAllDiscoveredLetters(guess: Guess, guesses: Guesses, targe
       const index = targetWordNotFound.findIndex((targetWordLetter) => targetWordLetter === letter);
       if (index >= 0) {
         // we've found this in the target word
-        targetWordNotFound[index] == "";
+        targetWordNotFound[index] = "";
         presentLetters.push({ status: "present", guessIndex, letter });
       } else {
         absentLetters.push({ status: "absent", guessIndex, letter });
