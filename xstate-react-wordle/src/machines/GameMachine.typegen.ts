@@ -13,15 +13,20 @@ export interface Typegen0 {
   missingImplementations: {
     actions: never;
     services: never;
-    guards: never;
+    guards: "wordTooShort";
     delays: never;
   };
   eventsCausingServices: {};
-  eventsCausingGuards: {};
+  eventsCausingGuards: {
+    wordTooShort: "SUBMIT_GUESS";
+  };
   eventsCausingDelays: {};
   matchesStates:
     | "round"
     | "round.playing"
+    | "round.playing.idle"
+    | "round.playing.checkingValidGuess"
+    | "round.playing.checkingCorrectWord"
     | "round.roundComplete"
     | "round.roundComplete.won"
     | "round.roundComplete.lost"
@@ -32,7 +37,10 @@ export interface Typegen0 {
         round?:
           | "playing"
           | "roundComplete"
-          | { roundComplete?: "won" | "lost" };
+          | {
+              playing?: "idle" | "checkingValidGuess" | "checkingCorrectWord";
+              roundComplete?: "won" | "lost";
+            };
         hardMode?: "enabled" | "disabled";
       };
   tags: never;

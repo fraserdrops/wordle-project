@@ -27,7 +27,7 @@ interface GameState {
 
 type CorrectLetterStatus = "correct";
 
-type LetterStatus = "absent" | "present" | CorrectLetterStatus | "unknown";
+export type LetterStatus = "absent" | "present" | CorrectLetterStatus | "unknown";
 
 type Guess = Array<string>;
 
@@ -57,7 +57,9 @@ const GameMachine = createMachine(
       events: {} as
         | { type: "SUBMIT_GUESS" }
         | { type: "DELETE_LETTER" }
-        | { type: "ADD_LETTER_TO_GUESS"; letter: string },
+        | { type: "ADD_LETTER_TO_GUESS"; letter: string }
+        | { type: "INCORRECT_GUESS" }
+        | { type: "CORRECT_GUESS" },
     },
     context: {
       guesses: [],
@@ -73,16 +75,31 @@ const GameMachine = createMachine(
         states: {
           playing: {
             on: {
-              SUBMIT_GUESS: {},
+              SUBMIT_GUESS: [
+                {
+                  cond: "wordTooShort",
+                },
+                {},
+              ],
               DELETE_LETTER: {
                 actions: ["deleteLetter"],
               },
               ADD_LETTER_TO_GUESS: {
                 actions: ["addLetterToGuess"],
               },
+              INCORRECT_GUESS: {},
+              CORRECT_GUESS: {
+                target: "#roundComplete.won",
+              },
+            },
+            states: {
+              idle: {},
+              checkingValidGuess: {},
+              checkingCorrectWord: {},
             },
           },
           roundComplete: {
+            id: "roundComplete",
             states: {
               won: {},
               lost: {},
@@ -115,6 +132,7 @@ const GameMachine = createMachine(
         },
       }),
     },
+    guards: {},
   }
 );
 
