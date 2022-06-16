@@ -4,7 +4,7 @@ import {
   Guess,
   InvalidGuessInfo,
   REVEAL_ANIMATION_TIME_PER_TILE,
-} from "../features/game/gameSlice";
+} from "../machines/GameMachine";
 import MessagePopup from "./MessagePopup";
 import Tile from "./Tile";
 

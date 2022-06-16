@@ -21,12 +21,24 @@ export interface Typegen0 {
     | "copiedToClipboard.visible"
     | "copiedToClipboard.hidden"
     | "round"
-    | "hardMode"
-    | "hardMode.enabled"
-    | "hardMode.disabled"
+    | "darkMode"
+    | "darkMode.enabled"
+    | "darkMode.disabled"
+    | "highContrastMode"
+    | "highContrastMode.enabled"
+    | "highContrastMode.disabled"
+    | "guessResult"
+    | "guessResult.idle"
+    | "guessResult.revealing"
     | {
         copiedToClipboard?: "visible" | "hidden";
-        hardMode?: "enabled" | "disabled";
+        darkMode?: "enabled" | "disabled";
+        highContrastMode?: "enabled" | "disabled";
+        guessResult?: "idle" | "revealing";
       };
-  tags: "showCopiedToClipboard";
+  tags:
+    | "showCopiedToClipboard"
+    | "darkMode"
+    | "highContrastMode"
+    | "revealGuessResult";
 }

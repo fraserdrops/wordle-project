@@ -1,16 +1,14 @@
-import React from "react";
-import { useAppSelector } from "../app/hooks";
-import { selectLetterStatuses } from "../features/game/gameSlice";
+import { LetterStatuses } from "../machines/GameMachine";
 
 type Props = {
-  handleKeyPress: (key: string) => Promise<void>;
+  handleKeyPress: (key: string) => void;
   keys: Array<string>;
   padSides: boolean;
+  letterStatuses: LetterStatuses;
 };
 
 export default function KeyboardRow(props: Props) {
-  const { keys, padSides, handleKeyPress } = props;
-  const letterStatuses = useAppSelector(selectLetterStatuses);
+  const { keys, padSides, handleKeyPress, letterStatuses } = props;
   return (
     <div
       style={{

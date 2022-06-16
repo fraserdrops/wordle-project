@@ -4,7 +4,7 @@ import BarChartIcon from "@mui/icons-material/BarChart";
 import SettingsIcon from "@mui/icons-material/Settings";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import { IconButton } from "@mui/material";
-import { Dialogs } from "../features/view/viewSlice";
+import { Dialogs } from "../machines/ViewMachine";
 import { HOST_REPO } from "../shared/constants";
 
 type Props = {

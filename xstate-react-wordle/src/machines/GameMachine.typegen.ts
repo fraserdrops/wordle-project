@@ -19,6 +19,7 @@ export interface Typegen0 {
   eventsCausingServices: {};
   eventsCausingGuards: {
     wordTooShort: "SUBMIT_GUESS";
+    hardModeCanBeChanged: "TOGGLE_HARD_MODE";
   };
   eventsCausingDelays: {};
   matchesStates:
@@ -43,5 +44,5 @@ export interface Typegen0 {
             };
         hardMode?: "enabled" | "disabled";
       };
-  tags: never;
+  tags: "roundComplete" | "won" | "lost" | "hardMode";
 }

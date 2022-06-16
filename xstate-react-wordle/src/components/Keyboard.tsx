@@ -1,6 +1,7 @@
-import React from "react";
-import { useAppDispatch } from "../app/hooks";
-import { handleKeyPress } from "../features/game/gameSlice";
+import { useSelector } from "@xstate/react";
+import { useContext } from "react";
+import { selectLetterStatuses } from "../machines/GameMachine";
+import { ActorContext } from "../main";
 import KeyboardRow from "./KeyboardRow";
 
 const rowKeyStrings = ["Q W E R T Y U I O P", "A S D F G H J K L", "ENTER Z X C V B N M DEL"];
@@ -8,7 +9,9 @@ const rowKeyStrings = ["Q W E R T Y U I O P", "A S D F G H J K L", "ENTER Z X C 
 type Props = {};
 
 const Keyboard = (props: Props) => {
-  const dispatch = useAppDispatch();
+  const actorContext = useContext(ActorContext);
+  const letterStatuses = useSelector(actorContext.gameActorRef, selectLetterStatuses);
+
   return (
     <div
       style={{
@@ -23,8 +26,11 @@ const Keyboard = (props: Props) => {
           <KeyboardRow
             keys={rowKeys.split(" ")}
             padSides={index === 1}
-            handleKeyPress={(key: string) => dispatch(handleKeyPress({ key }))}
+            handleKeyPress={(key: string) =>
+              actorContext.viewActorRef.send({ type: "KEY_PRESS", key })
+            }
             key={index}
+            letterStatuses={letterStatuses}
           />
         );
       })}

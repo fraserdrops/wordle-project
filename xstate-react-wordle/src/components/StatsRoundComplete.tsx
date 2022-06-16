@@ -3,7 +3,7 @@ import React, { useContext } from "react";
 import Countdown from "react-countdown";
 import ShareIcon from "@mui/icons-material/Share";
 import MessagePopup from "./MessagePopup";
-import { ViewActorContext } from "../main";
+import { ActorContext } from "../main";
 import { useSelector } from "@xstate/react";
 import ViewMachine from "../machines/ViewMachine";
 import { StateFrom, StateValueFrom } from "xstate";
@@ -23,11 +23,8 @@ const selectShowCopiedToClipboard = (state: StateFrom<typeof ViewMachine>) => {
 };
 
 const StatsRoundComplete = (props: Props) => {
-  const viewActorContext = useContext(ViewActorContext);
-  const showCopiedToClipboard = useSelector(
-    viewActorContext.viewActorRef,
-    selectShowCopiedToClipboard
-  );
+  const actorContext = useContext(ActorContext);
+  const showCopiedToClipboard = useSelector(actorContext.viewActorRef, selectShowCopiedToClipboard);
   const tomorrow = getTomorrow();
 
   return (
@@ -52,7 +49,7 @@ const StatsRoundComplete = (props: Props) => {
           size="large"
           sx={{ width: "70%" }}
           endIcon={<ShareIcon />}
-          onClick={() => viewActorContext.viewActorRef.send({ type: "SHARE_RESULTS" })}
+          onClick={() => actorContext.viewActorRef.send({ type: "SHARE_RESULTS" })}
         >
           Share
         </Button>

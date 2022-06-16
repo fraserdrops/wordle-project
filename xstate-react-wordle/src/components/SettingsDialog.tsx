@@ -13,21 +13,11 @@ import {
   Switch,
   TextField,
 } from "@mui/material";
+import { useActor, useSelector } from "@xstate/react";
 import * as React from "react";
-import { useAppDispatch, useAppSelector } from "../app/hooks";
-import {
-  newRoundWithCustomWord,
-  newRoundWithRandomWord,
-  RoundFrequency,
-  selectHardModeCanBeChanged,
-  toggleHardMode,
-  updateRoundFrequency,
-} from "../features/game/gameSlice";
-import {
-  clearLocalStorage,
-  toggleDarkMode,
-  toggleHighContrastMode,
-} from "../features/view/viewSlice";
+import { StateFrom } from "xstate";
+import { selectHardModeCanBeChanged } from "../machines/GameMachine";
+import { ActorContext } from "../main";
 import { WORD_LENGTH } from "../shared/constants";
 import BaseDialog from "./BaseDialog";
 
@@ -38,10 +28,10 @@ type Props = {
 
 export default function SettingsDialog(props: Props) {
   const { onClose, open } = props;
-  const { hardMode } = useAppSelector((state) => state.gameState);
-  const { darkMode, highContrastMode } = useAppSelector((state) => state.viewState);
-  const dispatch = useAppDispatch();
-  const hardModeCanBeChanged = useAppSelector(selectHardModeCanBeChanged);
+  const actorContext = React.useContext(ActorContext);
+  const hardModeCanBeChanged = useSelector(actorContext.gameActorRef, selectHardModeCanBeChanged);
+  const [viewState, viewSend] = useActor(actorContext.viewActorRef);
+  const [gameState, gameSend] = useActor(actorContext.gameActorRef);
 
   const handleClose = () => {
     onClose();
@@ -57,8 +47,8 @@ export default function SettingsDialog(props: Props) {
               ? "Any revealed hints must be used in subsequent guesses"
               : "Hard mode can only be enabled at the start of a round"
           }
-          checked={hardMode}
-          handleChange={() => dispatch(toggleHardMode())}
+          checked={gameState.hasTag("hardMode")}
+          handleChange={() => gameSend({ type: "TOGGLE_HARD_MODE" })}
           disabled={!hardModeCanBeChanged}
         />
       </Box>
@@ -67,8 +57,8 @@ export default function SettingsDialog(props: Props) {
         <SettingsToggleSection
           label="Dark Mode"
           details=""
-          checked={darkMode}
-          handleChange={() => dispatch(toggleDarkMode())}
+          checked={viewState.hasTag("darkMode")}
+          handleChange={() => viewSend({ type: "TOGGLE_DARK_MODE" })}
         />
       </Box>
       <Divider variant="middle" />
@@ -76,8 +66,8 @@ export default function SettingsDialog(props: Props) {
         <SettingsToggleSection
           label="High Contrast Mode"
           details="For improved color vision"
-          checked={highContrastMode}
-          handleChange={() => dispatch(toggleHighContrastMode())}
+          checked={viewState.hasTag("highContrastMode")}
+          handleChange={() => viewSend({ type: "TOGGLE_HIGH_CONTRAST_MODE" })}
         />
       </Box>
       <Box sx={{ marginBottom: 2, marginTop: 2 }}>
@@ -122,7 +112,6 @@ function SettingsToggleSection(props: ToggleSectionProps) {
 }
 
 function SettingsDebugSection(props: {}) {
-  const dispatch = useAppDispatch();
   const { roundFrequency } = useAppSelector((state) => state.gameState);
   const [customWord, setCustomWord] = React.useState("");
   const [error, setError] = React.useState(false);
