@@ -1,7 +1,8 @@
 import { Box } from "@mui/material";
+import { useActor, useSelector } from "@xstate/react";
 import * as React from "react";
-import { useAppSelector } from "../app/hooks";
-import { selectGameStats } from "../features/stats/statsSlice";
+import { selectGameStats } from "../machines/StatsMachine";
+import { ActorContext } from "../main";
 import BaseDialog from "./BaseDialog";
 import StatsChart from "./StatsChart";
 import StatsNumerical from "./StatsNumerical";
@@ -14,8 +15,11 @@ type Props = {
 
 export default function StatsDialog(props: Props) {
   const { onClose, open } = props;
-  const { gamesPlayed, winRatio, currentStreak, longestStreak, guessDistribution } =
-    useAppSelector(selectGameStats);
+  const actorContext = React.useContext(ActorContext);
+  const { gamesPlayed, winRatio, currentStreak, longestStreak, guessDistribution } = useSelector(
+    actorContext.statsActorRef,
+    selectGameStats
+  );
 
   const handleClose = () => {
     onClose();

@@ -4,13 +4,12 @@ import { InvalidGuessInfo } from "./GameMachine";
 export type Dialogs = "stats" | "help" | "settings";
 
 type SavedView = {
-  darkMode: boolean;
-  highContrastMode: boolean;
+  // darkMode: boolean;
+  // highContrastMode: boolean;
 };
 
-type ViewState = SavedView & {
+type ViewState = {
   openDialog: Dialogs | false;
-  showCopiedToClipboard: boolean;
 };
 
 const VIEW_LOCAL_STORAGE_KEY = "view";
@@ -18,14 +17,17 @@ const VIEW_LOCAL_STORAGE_KEY = "view";
 type ViewEventSchema =
   | { type: "TOGGLE_DARK_MODE" }
   | { type: "TOGGLE_HIGH_CONTRAST_MODE" }
-  | { type: "ADD_LETTER_TO_GUESS"; letter: string }
-  | { type: "INCORRECT_GUESS" }
-  | { type: "CORRECT_GUESS" }
-  | { type: "SHARE_RESULTS" };
+  | { type: "KEYPRESS"; key: string }
+  | { type: "SHARE_RESULTS" }
+  | { type: "SET_OPEN_DIALOG" }
+  | { type: "OPEN_DIALOG"; dialog: Dialogs }
+  | { type: "CLOSE_DIALOG" }
+  | { type: "CLEAR_LOCAL_STORAGE" };
 
-type ViewContext = {
+type ViewContext = SavedView & {
   invalidGuess: InvalidGuessInfo | undefined;
   congrats: string | undefined;
+  openDialog: Dialogs | false;
 };
 const ViewMachine = createMachine(
   {
@@ -37,8 +39,18 @@ const ViewMachine = createMachine(
     context: {
       invalidGuess: undefined,
       congrats: undefined,
+      // todo: open dialog on app load
+      openDialog: false,
     },
     type: "parallel",
+    on: {
+      OPEN_DIALOG: {
+        actions: ["setDialog"],
+      },
+      CLOSE_DIALOG: {
+        actions: ["clearOpenDialog"],
+      },
+    },
     states: {
       copiedToClipboard: {
         states: {
@@ -85,7 +97,10 @@ const ViewMachine = createMachine(
     },
   },
   {
-    actions: {},
+    actions: {
+      setDialog: assign({ openDialog: (ctx, event) => event.dialog }),
+      clearOpenDialog: assign({ openDialog: () => false }),
+    },
     guards: {},
   }
 );

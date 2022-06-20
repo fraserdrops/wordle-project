@@ -16,7 +16,7 @@ import {
 import { useActor, useSelector } from "@xstate/react";
 import * as React from "react";
 import { StateFrom } from "xstate";
-import { selectHardModeCanBeChanged } from "../machines/GameMachine";
+import { RoundFrequency, selectHardModeCanBeChanged } from "../machines/GameMachine";
 import { ActorContext } from "../main";
 import { WORD_LENGTH } from "../shared/constants";
 import BaseDialog from "./BaseDialog";
@@ -112,7 +112,10 @@ function SettingsToggleSection(props: ToggleSectionProps) {
 }
 
 function SettingsDebugSection(props: {}) {
-  const { roundFrequency } = useAppSelector((state) => state.gameState);
+  const actorContext = React.useContext(ActorContext);
+  const [gameState, gameSend] = useActor(actorContext.gameActorRef);
+  const [viewState, viewSend] = useActor(actorContext.viewActorRef);
+  const { roundFrequency } = gameState.context;
   const [customWord, setCustomWord] = React.useState("");
   const [error, setError] = React.useState(false);
 
@@ -128,18 +131,28 @@ function SettingsDebugSection(props: {}) {
       setError(true);
       return;
     }
-    dispatch(newRoundWithCustomWord({ word: customWord.toUpperCase() }));
+    gameSend({ type: "NEW_ROUND_CUSTOM_WORD", word: customWord.toUpperCase() });
   };
 
   const handleFrequencyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    dispatch(updateRoundFrequency((event.target as HTMLInputElement).value as RoundFrequency));
+    gameSend({
+      type: "UPDATE_ROUND_FREQUENCY",
+      roundFrequency: (event.target as HTMLInputElement).value as RoundFrequency,
+    });
   };
 
   return (
     <section>
       <h4>Debug</h4>
-      <Button onClick={() => dispatch(clearLocalStorage())}>Clear storage</Button>
-      <Button onClick={() => dispatch(newRoundWithRandomWord())}>Random Word</Button>
+      <Button
+        onClick={() => {
+          gameSend({ type: "CLEAR_LOCAL_STORAGE" });
+          viewSend({ type: "CLEAR_LOCAL_STORAGE" });
+        }}
+      >
+        Clear storage
+      </Button>
+      <Button onClick={() => gameSend({ type: "NEW_ROUND_RANDOM_WORD" })}>Random Word</Button>
       <TextField
         error={error}
         id="outlined-error-helper-text"

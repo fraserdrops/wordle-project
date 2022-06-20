@@ -2,7 +2,10 @@
 
 export interface Typegen0 {
   "@@xstate/typegen": true;
-  eventsCausingActions: {};
+  eventsCausingActions: {
+    setDialog: "OPEN_DIALOG";
+    clearOpenDialog: "CLOSE_DIALOG";
+  };
   internalEvents: {
     "xstate.init": { type: "xstate.init" };
   };

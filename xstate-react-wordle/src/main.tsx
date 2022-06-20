@@ -8,10 +8,12 @@ import { useInterpret } from "@xstate/react";
 import { ActorRefFrom } from "xstate";
 import ViewMachine from "./machines/ViewMachine";
 import GameMachine from "./machines/GameMachine";
+import StatsMachine from "./machines/StatsMachine";
 
 interface ActorContextType {
   viewActorRef: ActorRefFrom<typeof ViewMachine>;
   gameActorRef: ActorRefFrom<typeof GameMachine>;
+  statsActorRef: ActorRefFrom<typeof StatsMachine>;
 }
 
 export const ActorContext = createContext(
@@ -23,9 +25,10 @@ export const ActorContext = createContext(
 export const ViewActorProvider = (props: { children: React.ReactNode }) => {
   const viewActorRef = useInterpret(ViewMachine);
   const gameActorRef = useInterpret(GameMachine);
+  const statsActorRef = useInterpret(StatsMachine);
 
   return (
-    <ActorContext.Provider value={{ viewActorRef, gameActorRef }}>
+    <ActorContext.Provider value={{ viewActorRef, gameActorRef, statsActorRef }}>
       {props.children}
     </ActorContext.Provider>
   );

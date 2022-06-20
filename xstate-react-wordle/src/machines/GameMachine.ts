@@ -18,6 +18,7 @@ interface GameState {
   guessLength: number;
   currentGuess: Guess;
   targetWord: string;
+  roundFrequency: RoundFrequency;
   // revealGuessResult: boolean;
   // invalidGuess: InvalidGuessInfo | undefined;
   // congrats: string | undefined;
@@ -122,7 +123,7 @@ type DiscoveredLetter = { status: LetterStatus; guessIndex: number; letter: stri
 
 type DiscoveredLetters = Record<string, DiscoveredLetter>;
 
-type RoundFrequency = "24hr" | "1min";
+export type RoundFrequency = "24hr" | "1min";
 
 const GameMachine = createMachine(
   {
@@ -135,7 +136,11 @@ const GameMachine = createMachine(
         | { type: "ADD_LETTER_TO_GUESS"; letter: string }
         | { type: "INCORRECT_GUESS" }
         | { type: "CORRECT_GUESS" }
-        | { type: "TOGGLE_HARD_MODE" },
+        | { type: "TOGGLE_HARD_MODE" }
+        | { type: "NEW_ROUND_CUSTOM_WORD"; word: string }
+        | { type: "UPDATE_ROUND_FREQUENCY"; roundFrequency: RoundFrequency }
+        | { type: "NEW_ROUND_RANDOM_WORD" }
+        | { type: "CLEAR_LOCAL_STORAGE" },
     },
     context: {
       guesses: [],
@@ -143,6 +148,7 @@ const GameMachine = createMachine(
       guessLength: WORD_LENGTH,
       currentGuess: [],
       targetWord: "REACT",
+      roundFrequency: "24hr",
     },
     type: "parallel",
     states: {
