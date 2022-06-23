@@ -16,6 +16,7 @@ import {
 import { useActor, useSelector } from "@xstate/react";
 import * as React from "react";
 import { StateFrom } from "xstate";
+import { selectDarkMode, selectHighContrastMode } from "../machines/AppMachine";
 import { RoundFrequency, selectHardModeCanBeChanged } from "../machines/GameMachine";
 import { ActorContext } from "../main";
 import { WORD_LENGTH } from "../shared/constants";
@@ -32,6 +33,8 @@ export default function SettingsDialog(props: Props) {
   const hardModeCanBeChanged = useSelector(actorContext.gameActorRef, selectHardModeCanBeChanged);
   const [viewState, viewSend] = useActor(actorContext.viewActorRef);
   const [gameState, gameSend] = useActor(actorContext.gameActorRef);
+  const isDarkMode = useSelector(actorContext.appActorRef, selectDarkMode);
+  const isHighContrastMode = useSelector(actorContext.appActorRef, selectHighContrastMode);
 
   const handleClose = () => {
     onClose();
@@ -57,8 +60,8 @@ export default function SettingsDialog(props: Props) {
         <SettingsToggleSection
           label="Dark Mode"
           details=""
-          checked={viewState.hasTag("darkMode")}
-          handleChange={() => viewSend({ type: "TOGGLE_DARK_MODE" })}
+          checked={isDarkMode}
+          handleChange={() => actorContext.appActorRef.send({ type: "TOGGLE_DARK_MODE" })}
         />
       </Box>
       <Divider variant="middle" />
@@ -66,8 +69,8 @@ export default function SettingsDialog(props: Props) {
         <SettingsToggleSection
           label="High Contrast Mode"
           details="For improved color vision"
-          checked={viewState.hasTag("highContrastMode")}
-          handleChange={() => viewSend({ type: "TOGGLE_HIGH_CONTRAST_MODE" })}
+          checked={isHighContrastMode}
+          handleChange={() => actorContext.appActorRef.send({ type: "TOGGLE_HIGH_CONTRAST_MODE" })}
         />
       </Box>
       <Box sx={{ marginBottom: 2, marginTop: 2 }}>

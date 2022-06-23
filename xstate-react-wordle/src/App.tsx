@@ -9,14 +9,18 @@ import StatsDialog from "./components/StatsDialog";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { red, blue } from "@mui/material/colors";
 import { ActorContext } from "./main";
-import { useActor } from "@xstate/react";
+import { useActor, useSelector } from "@xstate/react";
+import { selectDarkMode, selectHighContrastMode } from "./machines/AppMachine";
 
 function App() {
   const actorContext = React.useContext(ActorContext);
   const [viewState, viewSend] = useActor(actorContext.viewActorRef);
+  const [appState, appSend] = useActor(actorContext.appActorRef);
+
   const { openDialog } = viewState.context;
-  const darkMode = viewState.hasTag("darkMode");
-  const highContrastMode = viewState.hasTag("highContrastMode");
+  const darkMode = useSelector(actorContext.appActorRef, selectDarkMode);
+  const highContrastMode = useSelector(actorContext.appActorRef, selectHighContrastMode);
+  console.log("dark mode", darkMode, highContrastMode);
 
   const handleOpenDialog = (dialog: "stats" | "help" | "settings") => {
     viewSend({ type: "OPEN_DIALOG", dialog });
@@ -27,7 +31,12 @@ function App() {
   };
 
   useEffect(() => {
-    const keyHandler = (e: KeyboardEvent) => viewSend({ type: "KEYPRESS", key: e.key });
+    const keyHandler = (e: KeyboardEvent) => {
+      console.log("sending", appSend, appState);
+
+      appSend({ type: "KEYPRESS", key: e.key, origin: "" });
+      // actorContext.appActorRef.send({ type: "KEYPRESS", key: e.key, origin: "" });
+    };
     window.addEventListener("keydown", keyHandler);
     return () => {
       window.removeEventListener("keydown", keyHandler);

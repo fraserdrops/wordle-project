@@ -3,8 +3,6 @@
 export interface Typegen0 {
   "@@xstate/typegen": true;
   eventsCausingActions: {
-    setDialog: "OPEN_DIALOG";
-    clearOpenDialog: "CLOSE_DIALOG";
     switchboard: "*";
   };
   internalEvents: {
@@ -20,17 +18,6 @@ export interface Typegen0 {
   eventsCausingServices: {};
   eventsCausingGuards: {};
   eventsCausingDelays: {};
-  matchesStates:
-    | "copiedToClipboard"
-    | "copiedToClipboard.visible"
-    | "copiedToClipboard.hidden"
-    | "round"
-    | "guessResult"
-    | "guessResult.idle"
-    | "guessResult.revealing"
-    | {
-        copiedToClipboard?: "visible" | "hidden";
-        guessResult?: "idle" | "revealing";
-      };
-  tags: "showCopiedToClipboard" | "revealGuessResult";
+  matchesStates: undefined;
+  tags: never;
 }
