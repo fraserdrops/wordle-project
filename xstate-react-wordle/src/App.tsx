@@ -10,24 +10,24 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { red, blue } from "@mui/material/colors";
 import { ActorContext } from "./main";
 import { useActor, useSelector } from "@xstate/react";
-import { selectDarkMode, selectHighContrastMode } from "./machines/AppMachine";
+import { selectDarkMode, selectDialog, selectHighContrastMode } from "./machines/AppMachine";
 
 function App() {
   const actorContext = React.useContext(ActorContext);
   const [viewState, viewSend] = useActor(actorContext.viewActorRef);
   const [appState, appSend] = useActor(actorContext.appActorRef);
 
-  const { openDialog } = viewState.context;
   const darkMode = useSelector(actorContext.appActorRef, selectDarkMode);
   const highContrastMode = useSelector(actorContext.appActorRef, selectHighContrastMode);
+  const openDialog = useSelector(actorContext.appActorRef, selectDialog);
   console.log("dark mode", darkMode, highContrastMode);
 
   const handleOpenDialog = (dialog: "stats" | "help" | "settings") => {
-    viewSend({ type: "OPEN_DIALOG", dialog });
+    appSend({ type: "OPEN_DIALOG", dialog });
   };
 
   const handleCloseDialog = () => {
-    viewSend({ type: "CLOSE_DIALOG" });
+    appSend({ type: "CLOSE_DIALOG" });
   };
 
   useEffect(() => {

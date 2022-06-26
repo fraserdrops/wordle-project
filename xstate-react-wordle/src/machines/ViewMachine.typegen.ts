@@ -3,8 +3,6 @@
 export interface Typegen0 {
   "@@xstate/typegen": true;
   eventsCausingActions: {
-    setDialog: "OPEN_DIALOG";
-    clearOpenDialog: "CLOSE_DIALOG";
     switchboard: "*";
   };
   internalEvents: {

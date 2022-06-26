@@ -3,25 +3,10 @@ import { pure, send } from "xstate/lib/actions";
 import GameMachine, { InvalidGuessInfo } from "./GameMachine";
 import ViewMachine, {
   selectDarkModeFromView,
+  selectDialogFromView,
   selectHighContrastModeFromView,
   ViewEventSchema,
 } from "./ViewMachine";
-
-// const Switchboard = (context, event) => (callback, onReceive) => {
-//   const lookup = {
-//     // '' = external event
-//     "": {
-//       KEYPRESS: 'view',
-//       // added this line in the wiring
-//       '*': 'someActor'
-//     },
-//     view: {
-//       KEYPRESS: 'someActor'
-//     },
-//   };
-//   const target = lookup[origin][event]
-//   sendTo(target, event);
-// };
 
 type SavedApp = {
   // darkMode: boolean;
@@ -71,6 +56,8 @@ const AppMachine = createMachine(
             KEYPRESS: "view",
             TOGGLE_DARK_MODE: "view",
             TOGGLE_HIGH_CONTRAST_MODE: "view",
+            OPEN_DIALOG: "view",
+            CLOSE_DIALOG: "view",
           },
           view: {
             "*": "game",
@@ -78,6 +65,10 @@ const AppMachine = createMachine(
         };
         const { origin = "" } = event;
         const target = lookup[origin][event.type] ?? lookup[origin]["*"];
+        if (!target) {
+          return [];
+        }
+        console.log("sending", { ...event, origin: "" }, "to", target);
         return send({ ...event, origin: "" }, { to: target });
       }),
     },
@@ -91,6 +82,10 @@ export function selectDarkMode(state) {
 
 export function selectHighContrastMode(state) {
   return selectHighContrastModeFromView(state.children["view"].state);
+}
+
+export function selectDialog(state) {
+  return selectDialogFromView(state.children["view"].state);
 }
 
 export default AppMachine;

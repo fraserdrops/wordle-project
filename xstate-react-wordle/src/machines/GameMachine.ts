@@ -1,4 +1,8 @@
 import { assign, createMachine, StateFrom } from "xstate";
+import { pure, send, sendParent } from "xstate/lib/actions";
+import { createSwitchboard } from "../shared/switchboard";
+import makeCreateEnumMachine from "./EnumMachine";
+import ToggleMachine from "./ToggleMachine";
 
 export type GameStatus = "playing" | "won" | "lost";
 
@@ -125,6 +129,20 @@ type DiscoveredLetters = Record<string, DiscoveredLetter>;
 
 export type RoundFrequency = "24hr" | "1min";
 
+const validateGuess = (ctx, event) => (callback, onReceive) => {
+  onReceive((event) => {
+    console.log("keypressHandler", event);
+    const { key } = event;
+    if (key === "Enter") {
+      callback({ type: "SUBMIT_GUESS", origin: "keypressHandler" });
+    } else if (key === "Del") {
+      callback({ type: "DELETE_LETTER", origin: "keypressHandler" });
+    } else {
+      callback({ type: "ADD_LETTER_TO_GUESS", letter: key, origin: "keypressHandler" });
+    }
+  });
+};
+
 const GameMachine = createMachine(
   {
     tsTypes: {} as import("./GameMachine.typegen").Typegen0,
@@ -136,7 +154,6 @@ const GameMachine = createMachine(
         | { type: "ADD_LETTER_TO_GUESS"; letter: string }
         | { type: "INCORRECT_GUESS" }
         | { type: "CORRECT_GUESS" }
-        | { type: "TOGGLE_HARD_MODE" }
         | { type: "NEW_ROUND_CUSTOM_WORD"; word: string }
         | { type: "UPDATE_ROUND_FREQUENCY"; roundFrequency: RoundFrequency }
         | { type: "NEW_ROUND_RANDOM_WORD" }
@@ -194,21 +211,6 @@ const GameMachine = createMachine(
           },
         },
       },
-      hardMode: {
-        initial: "disabled",
-        tags: ["hardMode"],
-        states: {
-          enabled: {
-            on: {
-              TOGGLE_HARD_MODE: {
-                cond: "hardModeCanBeChanged",
-                target: "disabled",
-              },
-            },
-          },
-          disabled: {},
-        },
-      },
     },
   },
   {
@@ -239,5 +241,63 @@ const GameMachine = createMachine(
 export function selectHardModeCanBeChanged(state: any) {
   return state.context.guesses.length === 0 || state.hasTag("roundComplete");
 }
+
+const CoreMachine = createMachine(
+  {
+    tsTypes: {} as import("./GameMachine.typegen").Typegen1,
+    schema: {
+      context: {} as ViewContext,
+      events: {} as ViewEventSchema,
+    },
+    context: {
+      invalidGuess: undefined,
+      congrats: undefined,
+      // todo: open dialog on app load
+    },
+    on: {
+      "*": {
+        actions: ["switchboard"],
+      },
+    },
+    invoke: [
+      { id: "gameStatus", src: GameMachine },
+      { id: "hardMode", src: ToggleMachine },
+      { id: "validateGuess", src: validateGuess },
+    ],
+  },
+  {
+    actions: {
+      switchboard: createSwitchboard((ctx, event) => ({
+        // '' = external event
+        "": {
+          KEYPRESS: { target: "keypressHandler", type: "KEYPRESS" },
+          TOGGLE_HARD_MODE: { target: "hardMode", type: "TOGGLE" },
+          ADD_LETTER: {
+            target: "gameStatus",
+            type: "ADD_LETTER_TO_GUESS",
+          },
+          DELETE_LETTER: {
+            target: "gameStatus",
+            type: "DELETE_LETTER",
+          },
+          SUBMIT_GUESS: {
+            target: "validateGuess",
+            type: "VALIDATE_GUESS",
+          },
+
+          "*": { target: "out", type: event.type },
+        },
+        validateGuess: {
+          VALID_GUESS: {
+            target: "out",
+            type: "",
+          },
+          INVALID_GUESS: {},
+        },
+      })),
+    },
+    guards: {},
+  }
+);
 
 export default GameMachine;

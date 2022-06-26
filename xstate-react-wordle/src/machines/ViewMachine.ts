@@ -1,5 +1,8 @@
 import { assign, createMachine } from "xstate";
 import { pure, send, sendParent } from "xstate/lib/actions";
+import { createSwitchboard } from "../shared/switchboard";
+import { isLetter } from "../shared/util";
+import makeCreateEnumMachine from "./EnumMachine";
 import { InvalidGuessInfo } from "./GameMachine";
 import ToggleMachine from "./ToggleMachine";
 
@@ -8,10 +11,6 @@ export type Dialogs = "stats" | "help" | "settings";
 type SavedView = {
   // darkMode: boolean;
   // highContrastMode: boolean;
-};
-
-type ViewState = {
-  openDialog: Dialogs | false;
 };
 
 const VIEW_LOCAL_STORAGE_KEY = "view";
@@ -29,19 +28,36 @@ export type ViewEventSchema =
 type ViewContext = SavedView & {
   invalidGuess: InvalidGuessInfo | undefined;
   congrats: string | undefined;
-  openDialog: Dialogs | false;
 };
+
+// turn the key display string into a real key code
+function getKeyCodeFromKey(key: string): string {
+  if (key === "DEL") {
+    return "Delete";
+  }
+
+  if (key === "ENTER") {
+    return "Enter";
+  }
+
+  if (key.toLocaleUpperCase() === "BACKSPACE") {
+    return "Delete";
+  }
+
+  return key;
+}
 
 const keypressHandler = (ctx, event) => (callback, onReceive) => {
   onReceive((event) => {
     console.log("keypressHandler", event);
     const { key } = event;
-    if (key === "Enter") {
+    const keycode = getKeyCodeFromKey(key).toLocaleUpperCase();
+    if (keycode === "ENTER") {
       callback({ type: "SUBMIT_GUESS", origin: "keypressHandler" });
-    } else if (key === "Del") {
+    } else if (keycode === "DELETE") {
       callback({ type: "DELETE_LETTER", origin: "keypressHandler" });
-    } else {
-      callback({ type: "ADD_LETTER_TO_GUESS", letter: key, origin: "keypressHandler" });
+    } else if (isLetter(keycode)) {
+      callback({ type: "ADD_LETTER_TO_GUESS", letter: keycode, origin: "keypressHandler" });
     }
   });
 };
@@ -57,16 +73,9 @@ const ViewMachine = createMachine(
       invalidGuess: undefined,
       congrats: undefined,
       // todo: open dialog on app load
-      openDialog: false,
     },
     type: "parallel",
     on: {
-      OPEN_DIALOG: {
-        actions: ["setDialog"],
-      },
-      CLOSE_DIALOG: {
-        actions: ["clearOpenDialog"],
-      },
       "*": {
         actions: ["switchboard"],
       },
@@ -75,6 +84,13 @@ const ViewMachine = createMachine(
       { id: "keypressHandler", src: keypressHandler },
       { id: "darkMode", src: ToggleMachine },
       { id: "highContrast", src: ToggleMachine },
+      {
+        id: "dialogs",
+        src: makeCreateEnumMachine({
+          vals: ["stats", "help", "settings", "closed"],
+          initial: "closed",
+        }),
+      },
     ],
     states: {
       copiedToClipboard: {
@@ -98,31 +114,24 @@ const ViewMachine = createMachine(
   },
   {
     actions: {
-      switchboard: pure((ctx, event: { type: string; origin?: string }) => {
-        console.log("switchboard", event);
-        const lookup: Record<string, Record<string, { target: string; type: string }>> = {
-          // '' = external event
-          "": {
-            KEYPRESS: { target: "keypressHandler", type: "KEYPRESS" },
-            TOGGLE_DARK_MODE: { target: "darkMode", type: "TOGGLE" },
-            TOGGLE_HIGH_CONTRAST_MODE: { target: "highContrast", type: "TOGGLE" },
-            "*": { target: "out", type: event.type },
+      switchboard: createSwitchboard((ctx, event) => ({
+        // '' = external event
+        "": {
+          KEYPRESS: { target: "keypressHandler", type: "KEYPRESS" },
+          TOGGLE_DARK_MODE: { target: "darkMode", type: "TOGGLE" },
+          TOGGLE_HIGH_CONTRAST_MODE: { target: "highContrast", type: "TOGGLE" },
+          OPEN_DIALOG: {
+            target: "dialogs",
+            type: "CHANGE_ACTIVE_VAL",
+            args: { val: event.dialog },
           },
-          keypressHandler: {
-            "*": { target: "out", type: event.type },
-          },
-        };
-        const { origin = "" } = event;
-        const { target, type } = lookup[origin][event.type] ?? lookup[origin]["*"];
-
-        if (target === "out") {
-          return sendParent({ ...event, type, origin: "view" });
-        }
-
-        return send({ ...event, type, origin: "" }, { to: target });
-      }),
-      setDialog: assign({ openDialog: (ctx, event) => event.dialog }),
-      clearOpenDialog: assign({ openDialog: () => false }),
+          CLOSE_DIALOG: { target: "dialogs", type: "CHANGE_ACTIVE_VAL", args: { val: "closed" } },
+          "*": { target: "out", type: event.type },
+        },
+        keypressHandler: {
+          "*": { target: "out", type: event.type },
+        },
+      })),
     },
     guards: {},
   }
@@ -136,14 +145,23 @@ export function selectDarkModeFromView(state) {
 function selectDarkMode(state) {
   return state.matches("on");
 }
+
 export function selectHighContrastModeFromView(state) {
   const highContrastModeComponent = state.children.highContrast;
-  console.log(highContrastModeComponent, highContrastModeComponent.state);
   return selectHighContrastMode(highContrastModeComponent.state);
 }
 
 function selectHighContrastMode(state) {
   return state.matches("on");
+}
+
+export function selectDialogFromView(state) {
+  const dialogComponent = state.children.dialogs;
+  return selectDialog(dialogComponent.state);
+}
+function selectDialog(state) {
+  console.log(state.value);
+  return state.value;
 }
 
 export default ViewMachine;

@@ -19,7 +19,6 @@ export interface Typegen0 {
   eventsCausingServices: {};
   eventsCausingGuards: {
     wordTooShort: "SUBMIT_GUESS";
-    hardModeCanBeChanged: "TOGGLE_HARD_MODE";
   };
   eventsCausingDelays: {};
   matchesStates:
@@ -31,9 +30,6 @@ export interface Typegen0 {
     | "round.roundComplete"
     | "round.roundComplete.won"
     | "round.roundComplete.lost"
-    | "hardMode"
-    | "hardMode.enabled"
-    | "hardMode.disabled"
     | {
         round?:
           | "playing"
@@ -42,7 +38,27 @@ export interface Typegen0 {
               playing?: "idle" | "checkingValidGuess" | "checkingCorrectWord";
               roundComplete?: "won" | "lost";
             };
-        hardMode?: "enabled" | "disabled";
       };
-  tags: "roundComplete" | "won" | "lost" | "hardMode";
+  tags: "roundComplete" | "won" | "lost";
+}
+export interface Typegen1 {
+  "@@xstate/typegen": true;
+  eventsCausingActions: {
+    switchboard: "*";
+  };
+  internalEvents: {
+    "xstate.init": { type: "xstate.init" };
+  };
+  invokeSrcNameMap: {};
+  missingImplementations: {
+    actions: never;
+    services: never;
+    guards: never;
+    delays: never;
+  };
+  eventsCausingServices: {};
+  eventsCausingGuards: {};
+  eventsCausingDelays: {};
+  matchesStates: undefined;
+  tags: never;
 }

@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 # xstate typegen
-*filename*.typegen.ts
+*.typegen.ts
