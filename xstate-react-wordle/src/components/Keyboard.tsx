@@ -1,6 +1,6 @@
 import { useSelector } from "@xstate/react";
 import { useContext } from "react";
-import { selectLetterStatuses } from "../machines/GameMachine";
+import { selectLetterStatuses } from "../machines/AppMachine";
 import { ActorContext } from "../main";
 import KeyboardRow from "./KeyboardRow";
 
@@ -10,7 +10,7 @@ type Props = {};
 
 const Keyboard = (props: Props) => {
   const actorContext = useContext(ActorContext);
-  const letterStatuses = useSelector(actorContext.gameActorRef, selectLetterStatuses);
+  const letterStatuses = useSelector(actorContext.appActorRef, selectLetterStatuses);
 
   return (
     <div
@@ -27,7 +27,7 @@ const Keyboard = (props: Props) => {
             keys={rowKeys.split(" ")}
             padSides={index === 1}
             handleKeyPress={(key: string) =>
-              actorContext.viewActorRef.send({ type: "KEY_PRESS", key })
+              actorContext.appActorRef.send({ type: "KEYPRESS", key })
             }
             key={index}
             letterStatuses={letterStatuses}

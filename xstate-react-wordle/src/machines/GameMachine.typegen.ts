@@ -3,6 +3,7 @@
 export interface Typegen0 {
   "@@xstate/typegen": true;
   eventsCausingActions: {
+    addCurrentGuessToGuesses: "SUBMIT_GUESS";
     deleteLetter: "DELETE_LETTER";
     addLetterToGuess: "ADD_LETTER_TO_GUESS";
   };
@@ -13,12 +14,13 @@ export interface Typegen0 {
   missingImplementations: {
     actions: never;
     services: never;
-    guards: "wordTooShort";
+    guards: never;
     delays: never;
   };
   eventsCausingServices: {};
   eventsCausingGuards: {
-    wordTooShort: "SUBMIT_GUESS";
+    correctWord: "SUBMIT_GUESS";
+    maxWordSizeNotReached: "ADD_LETTER_TO_GUESS";
   };
   eventsCausingDelays: {};
   matchesStates:

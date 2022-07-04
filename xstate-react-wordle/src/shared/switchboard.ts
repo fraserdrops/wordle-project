@@ -1,6 +1,7 @@
 import { pure, send, sendParent } from "xstate/lib/actions";
 
 export const createSwitchboard = (
+  id,
   makeWires: (
     ctx,
     event
@@ -12,9 +13,12 @@ export const createSwitchboard = (
     const { target, type, args = {} } = wires[origin][event.type] ?? wires[origin]["*"];
 
     if (target === "out") {
-      return sendParent({ ...event, type, origin: "view", ...args });
+      console.log("switchboard out", id, event);
+
+      return sendParent({ ...event, type, origin: id, ...args });
     }
-    console.log("sending", { ...event, type, origin: "", ...args }, "to", target);
+
+    console.log("switchboard to", id, target, event);
 
     return send({ ...event, type, origin: "", ...args }, { to: target });
   });

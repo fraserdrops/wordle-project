@@ -62,9 +62,47 @@ const keypressHandler = (ctx, event) => (callback, onReceive) => {
   });
 };
 
+type InvalidGuessSchema = { type: "INVALID_GUESS"; message: string } | { type: "__FLUSH_UPDATE__" };
+
+const InvalidGuessMachine = createMachine(
+  {
+    id: "invalidGuess",
+    tsTypes: {} as import("./ViewMachine.typegen").Typegen0,
+    schema: {
+      events: {} as InvalidGuessSchema,
+      context: {} as { message: string },
+    },
+    context: {
+      message: "",
+    },
+    initial: "idle",
+    on: {
+      INVALID_GUESS: { target: "active", internal: false, actions: ["setMessage"] },
+    },
+    states: {
+      active: {
+        after: {
+          2000: {
+            target: "idle",
+            actions: [sendParent("__FLUSH_UPDATE__")],
+          },
+        },
+      },
+      idle: {},
+    },
+  },
+  {
+    actions: {
+      setMessage: assign({ message: (_, event) => event.message }),
+    },
+    guards: {},
+  }
+);
+
 const ViewMachine = createMachine(
   {
-    tsTypes: {} as import("./ViewMachine.typegen").Typegen0,
+    id: "view",
+    tsTypes: {} as import("./ViewMachine.typegen").Typegen1,
     schema: {
       context: {} as ViewContext,
       events: {} as ViewEventSchema,
@@ -84,6 +122,7 @@ const ViewMachine = createMachine(
       { id: "keypressHandler", src: keypressHandler },
       { id: "darkMode", src: ToggleMachine },
       { id: "highContrast", src: ToggleMachine },
+      { id: "invalidGuess", src: InvalidGuessMachine },
       {
         id: "dialogs",
         src: makeCreateEnumMachine({
@@ -114,7 +153,7 @@ const ViewMachine = createMachine(
   },
   {
     actions: {
-      switchboard: createSwitchboard((ctx, event) => ({
+      switchboard: createSwitchboard("view", (ctx, event) => ({
         // '' = external event
         "": {
           KEYPRESS: { target: "keypressHandler", type: "KEYPRESS" },
@@ -126,10 +165,17 @@ const ViewMachine = createMachine(
             args: { val: event.dialog },
           },
           CLOSE_DIALOG: { target: "dialogs", type: "CHANGE_ACTIVE_VAL", args: { val: "closed" } },
+          ADD_LETTER_TO_GUESS: { target: "core", type: "ADD_LETTER_TO_GUESS" },
+          INVALID_GUESS: {
+            target: "invalidGuess",
+            type: "INVALID_GUESS",
+          },
           "*": { target: "out", type: event.type },
         },
         keypressHandler: {
-          "*": { target: "out", type: event.type },
+          SUBMIT_GUESS: { target: "out", type: event.type },
+          DELETE_LETTER: { target: "out", type: event.type },
+          ADD_LETTER_TO_GUESS: { target: "out", type: event.type },
         },
       })),
     },
@@ -162,6 +208,22 @@ export function selectDialogFromView(state) {
 function selectDialog(state) {
   console.log(state.value);
   return state.value;
+}
+
+export function selectInvalidGuessMessageFromView(state) {
+  return selectInvalidGuessMessage(state.children.invalidGuess.state);
+}
+
+function selectInvalidGuessMessage(state) {
+  return state.context.message;
+}
+
+export function selectInvalidGuessActiveFromView(state) {
+  return selectInvalidGuessActive(state.children.invalidGuess.state);
+}
+
+function selectInvalidGuessActive(state) {
+  return state.matches("active");
 }
 
 export default ViewMachine;

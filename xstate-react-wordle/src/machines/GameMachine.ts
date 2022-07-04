@@ -1,6 +1,12 @@
+// @ts-nocheck
+
 import { assign, createMachine, StateFrom } from "xstate";
 import { pure, send, sendParent } from "xstate/lib/actions";
+import { WORDS } from "../constants/wordList";
+import { AppModel } from "../main";
+// import { AppModel } from "../main";
 import { createSwitchboard } from "../shared/switchboard";
+import { selectGameState } from "./AppMachine";
 import makeCreateEnumMachine from "./EnumMachine";
 import ToggleMachine from "./ToggleMachine";
 
@@ -23,11 +29,6 @@ interface GameState {
   currentGuess: Guess;
   targetWord: string;
   roundFrequency: RoundFrequency;
-  // revealGuessResult: boolean;
-  // invalidGuess: InvalidGuessInfo | undefined;
-  // congrats: string | undefined;
-  // gameStatus: GameStatus;
-  // roundFrequency: RoundFrequency;
 }
 
 type CorrectLetterStatus = "correct";
@@ -93,12 +94,16 @@ export function getLetterStatusesFromGuess(guess: Guess, targetWord: string) {
 
 export type LetterStatuses = Record<string, LetterStatus>;
 
+export function selectLetterStatusesFromCore(state) {
+  return selectLetterStatuses(selectGameStateFromCore(state));
+}
+
 /**
  * Returns the highest priority status that's been discovered for each letter
  * @param state redux state
  * @returns statuses for each letter
  */
-export function selectLetterStatuses(state: StateFrom<typeof GameMachine>) {
+function selectLetterStatuses(state: StateFrom<typeof GameMachine>) {
   const { guesses, targetWord } = state.context;
   const letterStatuses: LetterStatuses = {};
 
@@ -129,22 +134,37 @@ type DiscoveredLetters = Record<string, DiscoveredLetter>;
 
 export type RoundFrequency = "24hr" | "1min";
 
-const validateGuess = (ctx, event) => (callback, onReceive) => {
+const validateGuess = (ctx, event, meta) => (callback, onReceive) => {
   onReceive((event) => {
-    console.log("keypressHandler", event);
-    const { key } = event;
-    if (key === "Enter") {
-      callback({ type: "SUBMIT_GUESS", origin: "keypressHandler" });
-    } else if (key === "Del") {
-      callback({ type: "DELETE_LETTER", origin: "keypressHandler" });
+    const { currentGuess, guesses, targetWord } = selectGameState(AppModel.state).context;
+    const isHardMode = selectHardMode(AppModel.state);
+    const missingLetterInfo = guessContainsAllDiscoveredLetters(currentGuess, guesses, targetWord);
+
+    let invalidGuess = false;
+    let invalidGuessMessage = "";
+
+    if (currentGuess.length < WORD_LENGTH) {
+      invalidGuess = true;
+      invalidGuessMessage = "Word too short";
+    } else if (!WORDS.includes(currentGuess.join("").toLocaleLowerCase())) {
+      invalidGuess = true;
+      invalidGuessMessage = "Not in word list";
+    } else if (isHardMode && missingLetterInfo.lettersMissing) {
+      invalidGuess = true;
+      invalidGuessMessage = getGuessDiscoveredLettersErrorMesaage(missingLetterInfo);
+    }
+
+    if (invalidGuess) {
+      callback({ type: "INVALID_GUESS", message: invalidGuessMessage, origin: "validateGuess" });
     } else {
-      callback({ type: "ADD_LETTER_TO_GUESS", letter: key, origin: "keypressHandler" });
+      callback({ type: "VALID_GUESS", origin: "validateGuess" });
     }
   });
 };
 
 const GameMachine = createMachine(
   {
+    id: "gameStatus",
     tsTypes: {} as import("./GameMachine.typegen").Typegen0,
     schema: {
       context: {} as GameState,
@@ -176,14 +196,18 @@ const GameMachine = createMachine(
             on: {
               SUBMIT_GUESS: [
                 {
-                  cond: "wordTooShort",
+                  cond: "correctWord",
+                  target: "roundComplete",
                 },
-                {},
+                {
+                  actions: ["addCurrentGuessToGuesses"],
+                },
               ],
               DELETE_LETTER: {
                 actions: ["deleteLetter"],
               },
               ADD_LETTER_TO_GUESS: {
+                cond: "maxWordSizeNotReached",
                 actions: ["addLetterToGuess"],
               },
               INCORRECT_GUESS: {},
@@ -228,22 +252,26 @@ const GameMachine = createMachine(
           return ctx.currentGuess;
         },
       }),
+      addCurrentGuessToGuesses: assign({
+        guesses: (ctx, event) => [...ctx.guesses, ctx.currentGuess],
+        currentGuess: () => [],
+      }),
     },
     guards: {
-      hardModeCanBeChanged: (ctx, event, { state }) => {
-        return selectHardModeCanBeChanged(state);
+      maxWordSizeNotReached: (ctx) => {
+        return ctx.currentGuess.length < WORD_LENGTH;
+      },
+      correctWord: (ctx) => {
+        return ctx.currentGuess.join("").toUpperCase() === ctx.targetWord.toUpperCase();
       },
     },
   }
 );
 
-// can't change hard mode during a round
-export function selectHardModeCanBeChanged(state: any) {
-  return state.context.guesses.length === 0 || state.hasTag("roundComplete");
-}
-
 const CoreMachine = createMachine(
   {
+    id: "core",
+
     tsTypes: {} as import("./GameMachine.typegen").Typegen1,
     schema: {
       context: {} as ViewContext,
@@ -267,12 +295,12 @@ const CoreMachine = createMachine(
   },
   {
     actions: {
-      switchboard: createSwitchboard((ctx, event) => ({
+      // @ts-ignore
+      switchboard: createSwitchboard("core", (ctx, event) => ({
         // '' = external event
         "": {
-          KEYPRESS: { target: "keypressHandler", type: "KEYPRESS" },
           TOGGLE_HARD_MODE: { target: "hardMode", type: "TOGGLE" },
-          ADD_LETTER: {
+          ADD_LETTER_TO_GUESS: {
             target: "gameStatus",
             type: "ADD_LETTER_TO_GUESS",
           },
@@ -284,15 +312,17 @@ const CoreMachine = createMachine(
             target: "validateGuess",
             type: "VALIDATE_GUESS",
           },
-
           "*": { target: "out", type: event.type },
         },
         validateGuess: {
           VALID_GUESS: {
-            target: "out",
-            type: "",
+            target: "gameStatus",
+            type: "SUBMIT_GUESS",
           },
-          INVALID_GUESS: {},
+          INVALID_GUESS: {
+            target: "out",
+            type: "INVALID_GUESS",
+          },
         },
       })),
     },
@@ -300,4 +330,98 @@ const CoreMachine = createMachine(
   }
 );
 
-export default GameMachine;
+export function selectHardModeFromCore(state) {
+  const hardModeComponent = state.children.hardMode;
+  return selectHardMode(hardModeComponent.state);
+}
+
+function selectHardMode(state) {
+  return state.matches("on");
+}
+
+export function selectGameStateFromCore(state) {
+  return state.children.gameStatus.state;
+}
+
+// can't change hard mode during a round
+export function selectHardModeCanBeChangedFromCore(state: any) {
+  return selectHardModeCanBeChanged(selectGameStateFromCore(state));
+}
+
+function selectHardModeCanBeChanged(state) {
+  return state.context.guesses.length === 0 || state.hasTag("roundComplete");
+}
+export default CoreMachine;
+
+// find all the correct letters
+// find any letters that were discovered to be present, that havne't been found to be correct
+// need to include duplicates, so check if it's correct if theres another of the same letter known to be present
+function guessContainsAllDiscoveredLetters(guess: Guess, guesses: Guesses, targetWord: string) {
+  // const correctLetters: DiscoveredLetters = {};
+  if (guesses.length === 0) {
+    // no previous guesses
+    return {};
+  }
+  const previousGuess = guesses[guesses.length - 1];
+
+  const targetWordNotFound = targetWord.split("");
+  const correctLetters: Array<DiscoveredLetter> = [];
+  const presentLetters: Array<DiscoveredLetter> = [];
+  const absentLetters = [];
+  // find all the correct letters in the guess
+  previousGuess.forEach((letter, index) => {
+    if (targetWord[index] === letter) {
+      // this letter is correct
+      correctLetters.push({ status: "correct", guessIndex: index, letter });
+
+      // we've found this in the target word
+      targetWordNotFound[index] = "";
+    }
+  });
+
+  previousGuess.forEach((letter, guessIndex) => {
+    if (targetWord[guessIndex] !== letter) {
+      // this letter is correct
+      const index = targetWordNotFound.findIndex((targetWordLetter) => targetWordLetter === letter);
+      if (index >= 0) {
+        // we've found this in the target word
+        targetWordNotFound[index] = "";
+        presentLetters.push({ status: "present", guessIndex, letter });
+      } else {
+        absentLetters.push({ status: "absent", guessIndex, letter });
+      }
+    }
+  });
+
+  let correctLettersNotInGuess: Array<DiscoveredLetter> = [];
+  let presentLettersNotInGuess: Array<DiscoveredLetter> = [];
+
+  let guessLettersNotFound = [...guess];
+
+  correctLetters.forEach((correctLetter) => {
+    if (guess[correctLetter.guessIndex] !== correctLetter.letter) {
+      correctLettersNotInGuess.push(correctLetter);
+    } else {
+      guessLettersNotFound[correctLetter.guessIndex] = "";
+    }
+  });
+
+  presentLetters.forEach((presentLetter) => {
+    const index = guessLettersNotFound.findIndex(
+      (guessLetter) => guessLetter === presentLetter.letter
+    );
+    if (index >= 0) {
+      // we've found this in the target word
+      guessLettersNotFound[index] = "";
+    } else {
+      presentLettersNotInGuess.push(presentLetter);
+    }
+  });
+
+  const lettersMissing = correctLettersNotInGuess.length + presentLettersNotInGuess.length > 0;
+  return {
+    lettersMissing,
+    correctLetters: correctLettersNotInGuess,
+    presentLetters: presentLettersNotInGuess,
+  };
+}

@@ -51,7 +51,7 @@ export function CurrentGuessRow(props: CurrentRowProps) {
   }
 
   return (
-    <GuessRowContainer>
+    <GuessRowContainer invalidGuess={Boolean(invalidGuess)}>
       {paddedGuess.map((letter, index) => (
         <Tile
           letter={letter}

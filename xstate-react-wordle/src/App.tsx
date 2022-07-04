@@ -14,13 +14,11 @@ import { selectDarkMode, selectDialog, selectHighContrastMode } from "./machines
 
 function App() {
   const actorContext = React.useContext(ActorContext);
-  const [viewState, viewSend] = useActor(actorContext.viewActorRef);
   const [appState, appSend] = useActor(actorContext.appActorRef);
 
   const darkMode = useSelector(actorContext.appActorRef, selectDarkMode);
   const highContrastMode = useSelector(actorContext.appActorRef, selectHighContrastMode);
   const openDialog = useSelector(actorContext.appActorRef, selectDialog);
-  console.log("dark mode", darkMode, highContrastMode);
 
   const handleOpenDialog = (dialog: "stats" | "help" | "settings") => {
     appSend({ type: "OPEN_DIALOG", dialog });
@@ -32,8 +30,6 @@ function App() {
 
   useEffect(() => {
     const keyHandler = (e: KeyboardEvent) => {
-      console.log("sending", appSend, appState);
-
       appSend({ type: "KEYPRESS", key: e.key, origin: "" });
       // actorContext.appActorRef.send({ type: "KEYPRESS", key: e.key, origin: "" });
     };

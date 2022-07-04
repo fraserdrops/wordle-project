@@ -16,8 +16,14 @@ import {
 import { useActor, useSelector } from "@xstate/react";
 import * as React from "react";
 import { StateFrom } from "xstate";
-import { selectDarkMode, selectHighContrastMode } from "../machines/AppMachine";
-import { RoundFrequency, selectHardModeCanBeChanged } from "../machines/GameMachine";
+import {
+  selectDarkMode,
+  selectGameState,
+  selectHardMode,
+  selectHardModeCanBeChanged,
+  selectHighContrastMode,
+} from "../machines/AppMachine";
+import { RoundFrequency } from "../machines/GameMachine";
 import { ActorContext } from "../main";
 import { WORD_LENGTH } from "../shared/constants";
 import BaseDialog from "./BaseDialog";
@@ -30,10 +36,9 @@ type Props = {
 export default function SettingsDialog(props: Props) {
   const { onClose, open } = props;
   const actorContext = React.useContext(ActorContext);
-  const hardModeCanBeChanged = useSelector(actorContext.gameActorRef, selectHardModeCanBeChanged);
-  const [viewState, viewSend] = useActor(actorContext.viewActorRef);
-  const [gameState, gameSend] = useActor(actorContext.gameActorRef);
+  const hardModeCanBeChanged = useSelector(actorContext.appActorRef, selectHardModeCanBeChanged);
   const isDarkMode = useSelector(actorContext.appActorRef, selectDarkMode);
+  const isHardMode = useSelector(actorContext.appActorRef, selectHardMode);
   const isHighContrastMode = useSelector(actorContext.appActorRef, selectHighContrastMode);
 
   const handleClose = () => {
@@ -50,8 +55,8 @@ export default function SettingsDialog(props: Props) {
               ? "Any revealed hints must be used in subsequent guesses"
               : "Hard mode can only be enabled at the start of a round"
           }
-          checked={gameState.hasTag("hardMode")}
-          handleChange={() => gameSend({ type: "TOGGLE_HARD_MODE" })}
+          checked={isHardMode}
+          handleChange={() => actorContext.appActorRef.send({ type: "TOGGLE_HARD_MODE" })}
           disabled={!hardModeCanBeChanged}
         />
       </Box>
@@ -116,8 +121,7 @@ function SettingsToggleSection(props: ToggleSectionProps) {
 
 function SettingsDebugSection(props: {}) {
   const actorContext = React.useContext(ActorContext);
-  const [gameState, gameSend] = useActor(actorContext.gameActorRef);
-  const [viewState, viewSend] = useActor(actorContext.viewActorRef);
+  const gameState = useSelector(actorContext.appActorRef, selectGameState);
   const { roundFrequency } = gameState.context;
   const [customWord, setCustomWord] = React.useState("");
   const [error, setError] = React.useState(false);
@@ -134,11 +138,14 @@ function SettingsDebugSection(props: {}) {
       setError(true);
       return;
     }
-    gameSend({ type: "NEW_ROUND_CUSTOM_WORD", word: customWord.toUpperCase() });
+    actorContext.appActorRef.send({
+      type: "NEW_ROUND_CUSTOM_WORD",
+      word: customWord.toUpperCase(),
+    });
   };
 
   const handleFrequencyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    gameSend({
+    actorContext.appActorRef.send({
       type: "UPDATE_ROUND_FREQUENCY",
       roundFrequency: (event.target as HTMLInputElement).value as RoundFrequency,
     });
@@ -149,13 +156,14 @@ function SettingsDebugSection(props: {}) {
       <h4>Debug</h4>
       <Button
         onClick={() => {
-          gameSend({ type: "CLEAR_LOCAL_STORAGE" });
-          viewSend({ type: "CLEAR_LOCAL_STORAGE" });
+          actorContext.appActorRef.send({ type: "CLEAR_LOCAL_STORAGE" });
         }}
       >
         Clear storage
       </Button>
-      <Button onClick={() => gameSend({ type: "NEW_ROUND_RANDOM_WORD" })}>Random Word</Button>
+      <Button onClick={() => actorContext.appActorRef.send({ type: "NEW_ROUND_RANDOM_WORD" })}>
+        Random Word
+      </Button>
       <TextField
         error={error}
         id="outlined-error-helper-text"

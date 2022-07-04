@@ -24,7 +24,8 @@ const selectShowCopiedToClipboard = (state: StateFrom<typeof ViewMachine>) => {
 
 const StatsRoundComplete = (props: Props) => {
   const actorContext = useContext(ActorContext);
-  const showCopiedToClipboard = useSelector(actorContext.viewActorRef, selectShowCopiedToClipboard);
+  // const showCopiedToClipboard = useSelector(actorContext.viewActorRef, selectShowCopiedToClipboard);
+  const showCopiedToClipboard = false;
   const tomorrow = getTomorrow();
 
   return (
@@ -49,7 +50,7 @@ const StatsRoundComplete = (props: Props) => {
           size="large"
           sx={{ width: "70%" }}
           endIcon={<ShareIcon />}
-          onClick={() => actorContext.viewActorRef.send({ type: "SHARE_RESULTS" })}
+          onClick={() => actorContext.appActorRef.send({ type: "SHARE_RESULTS" })}
         >
           Share
         </Button>
