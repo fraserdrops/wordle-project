@@ -3,7 +3,7 @@ import { pure, send, sendParent } from "xstate/lib/actions";
 import { createSwitchboard } from "../shared/switchboard";
 import { isLetter } from "../shared/util";
 import makeCreateEnumMachine from "./EnumMachine";
-import { InvalidGuessInfo } from "./GameMachine";
+import { coreSelectors, InvalidGuessInfo } from "./GameMachine";
 import ToggleMachine from "./ToggleMachine";
 
 export type Dialogs = "stats" | "help" | "settings";
@@ -23,7 +23,8 @@ export type ViewEventSchema =
   | { type: "SET_OPEN_DIALOG" }
   | { type: "OPEN_DIALOG"; dialog: Dialogs }
   | { type: "CLOSE_DIALOG" }
-  | { type: "CLEAR_LOCAL_STORAGE" };
+  | { type: "CLEAR_LOCAL_STORAGE" }
+  | { type: "REVEAL_GUESS" };
 
 type ViewContext = SavedView & {
   invalidGuess: InvalidGuessInfo | undefined;
@@ -62,12 +63,52 @@ const keypressHandler = (ctx, event) => (callback, onReceive) => {
   });
 };
 
+type RevealGuessSchema = { type: "REVEAL_GUESS"; message: string } | { type: "__FLUSH_UPDATE__" };
+const RevealGuess = createMachine(
+  {
+    id: "revealGuess",
+    tsTypes: {} as import("./ViewMachine.typegen").Typegen0,
+    schema: {
+      events: {} as RevealGuessSchema,
+      context: {} as { guessCounter: number },
+    },
+    context: {
+      guessCounter: 0,
+    },
+    initial: "idle",
+    on: {
+      REVEAL_GUESS: { target: "active", internal: false, actions: ["incrementGuessCounter"] },
+    },
+    states: {
+      active: {
+        after: {
+          2000: {
+            target: "idle",
+            actions: [sendParent("__FLUSH_UPDATE__")],
+          },
+        },
+      },
+      idle: {},
+    },
+  },
+  {
+    actions: {
+      incrementGuessCounter: assign({ guessCounter: (ctx, event) => ctx.guessCounter + 1 }),
+    },
+    guards: {},
+  }
+);
+
+// this doesn't
+function selectGuessCount(state) {
+  return state.context.guessCounter;
+}
 type InvalidGuessSchema = { type: "INVALID_GUESS"; message: string } | { type: "__FLUSH_UPDATE__" };
 
 const InvalidGuessMachine = createMachine(
   {
     id: "invalidGuess",
-    tsTypes: {} as import("./ViewMachine.typegen").Typegen0,
+    tsTypes: {} as import("./ViewMachine.typegen").Typegen1,
     schema: {
       events: {} as InvalidGuessSchema,
       context: {} as { message: string },
@@ -102,7 +143,7 @@ const InvalidGuessMachine = createMachine(
 const ViewMachine = createMachine(
   {
     id: "view",
-    tsTypes: {} as import("./ViewMachine.typegen").Typegen1,
+    tsTypes: {} as import("./ViewMachine.typegen").Typegen2,
     schema: {
       context: {} as ViewContext,
       events: {} as ViewEventSchema,
@@ -130,6 +171,7 @@ const ViewMachine = createMachine(
           initial: "closed",
         }),
       },
+      { id: "revealGuess", src: RevealGuess },
     ],
     states: {
       copiedToClipboard: {
@@ -170,6 +212,10 @@ const ViewMachine = createMachine(
             target: "invalidGuess",
             type: "INVALID_GUESS",
           },
+          INCORRECT_GUESS: {
+            target: "revealGuess",
+            type: "REVEAL_GUESS",
+          },
           "*": { target: "out", type: event.type },
         },
         keypressHandler: {
@@ -183,43 +229,55 @@ const ViewMachine = createMachine(
   }
 );
 
-export function selectDarkModeFromView(state) {
-  const darkModeComponent = state.children.darkMode;
-  return selectDarkMode(darkModeComponent.state);
-}
+export const viewSelectors = {
+  darkMode: (state) => {
+    const darkModeComponent = state.children.darkMode;
+    return selectDarkMode(darkModeComponent.state);
+  },
+  highContrast: (state) => {
+    const highContrastComponent = state.children.highContrast;
+    return selectHighContrastMode(highContrastComponent.state);
+  },
+  dialog: (state) => {
+    const dialogsComponent = state.children.dialogs;
+    return selectDialog(dialogsComponent.state);
+  },
+  invalidGuessMessage: (state) => {
+    const invalidGuessComponent = state.children.invalidGuess;
+    return selectInvalidGuessMessage(invalidGuessComponent.state);
+  },
+  invalidGuessActive: (state) => {
+    const invalidGuessComponent = state.children.invalidGuess;
+    return selectInvalidGuessActive(invalidGuessComponent.state);
+  },
+  guesses: (state) => {
+    // we want the view to select the guesses that it needs to display
+    // and it needs to handle 'revealing' a guess that's just been submitted
+    // the core model instantly commits this guess, but we don't want to commit it
+    // until it's been revealed, hence the view lags behind the core model
+    // essentially, we just keep a pointer to the last guess the view h
+    const revealGuessComponent = state.children.revealGuess;
+    const guessCount = selectGuessCount(revealGuessComponent.state);
+    const coreGuesses = coreSelectors.guesses;
+    return coreGuesses[guessCount];
+  },
+};
 
 function selectDarkMode(state) {
   return state.matches("on");
-}
-
-export function selectHighContrastModeFromView(state) {
-  const highContrastModeComponent = state.children.highContrast;
-  return selectHighContrastMode(highContrastModeComponent.state);
 }
 
 function selectHighContrastMode(state) {
   return state.matches("on");
 }
 
-export function selectDialogFromView(state) {
-  const dialogComponent = state.children.dialogs;
-  return selectDialog(dialogComponent.state);
-}
 function selectDialog(state) {
   console.log(state.value);
   return state.value;
 }
 
-export function selectInvalidGuessMessageFromView(state) {
-  return selectInvalidGuessMessage(state.children.invalidGuess.state);
-}
-
 function selectInvalidGuessMessage(state) {
   return state.context.message;
-}
-
-export function selectInvalidGuessActiveFromView(state) {
-  return selectInvalidGuessActive(state.children.invalidGuess.state);
 }
 
 function selectInvalidGuessActive(state) {

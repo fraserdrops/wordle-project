@@ -2,9 +2,30 @@
 
 export interface Typegen0 {
   "@@xstate/typegen": true;
-  eventsCausingActions: {
-    setMessage: "INVALID_GUESS";
+  internalEvents: {
+    "xstate.after(2000)#revealGuess.active": {
+      type: "xstate.after(2000)#revealGuess.active";
+    };
+    "xstate.init": { type: "xstate.init" };
   };
+  invokeSrcNameMap: {};
+  missingImplementations: {
+    actions: never;
+    services: never;
+    guards: never;
+    delays: never;
+  };
+  eventsCausingActions: {
+    incrementGuessCounter: "REVEAL_GUESS";
+  };
+  eventsCausingServices: {};
+  eventsCausingGuards: {};
+  eventsCausingDelays: {};
+  matchesStates: "active" | "idle";
+  tags: never;
+}
+export interface Typegen1 {
+  "@@xstate/typegen": true;
   internalEvents: {
     "xstate.after(2000)#invalidGuess.active": {
       type: "xstate.after(2000)#invalidGuess.active";
@@ -18,17 +39,17 @@ export interface Typegen0 {
     guards: never;
     delays: never;
   };
+  eventsCausingActions: {
+    setMessage: "INVALID_GUESS";
+  };
   eventsCausingServices: {};
   eventsCausingGuards: {};
   eventsCausingDelays: {};
   matchesStates: "active" | "idle";
   tags: never;
 }
-export interface Typegen1 {
+export interface Typegen2 {
   "@@xstate/typegen": true;
-  eventsCausingActions: {
-    switchboard: "*";
-  };
   internalEvents: {
     "xstate.init": { type: "xstate.init" };
   };
@@ -39,20 +60,23 @@ export interface Typegen1 {
     guards: never;
     delays: never;
   };
+  eventsCausingActions: {
+    switchboard: "*";
+  };
   eventsCausingServices: {};
   eventsCausingGuards: {};
   eventsCausingDelays: {};
   matchesStates:
     | "copiedToClipboard"
-    | "copiedToClipboard.visible"
     | "copiedToClipboard.hidden"
-    | "round"
+    | "copiedToClipboard.visible"
     | "guessResult"
     | "guessResult.idle"
     | "guessResult.revealing"
+    | "round"
     | {
-        copiedToClipboard?: "visible" | "hidden";
+        copiedToClipboard?: "hidden" | "visible";
         guessResult?: "idle" | "revealing";
       };
-  tags: "showCopiedToClipboard" | "revealGuessResult";
+  tags: "revealGuessResult" | "showCopiedToClipboard";
 }

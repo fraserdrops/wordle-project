@@ -1,21 +1,13 @@
-import { assign, createMachine } from "xstate";
+import { createMachine } from "xstate";
 import { pure, send } from "xstate/lib/actions";
 import CoreMachine, {
-  InvalidGuessInfo,
   RoundFrequency,
   selectGameStateFromCore,
   selectHardModeCanBeChangedFromCore,
   selectHardModeFromCore,
   selectLetterStatusesFromCore,
 } from "./GameMachine";
-import ViewMachine, {
-  selectDarkModeFromView,
-  selectDialogFromView,
-  selectHighContrastModeFromView,
-  ViewEventSchema,
-  selectInvalidGuessMessageFromView,
-  selectInvalidGuessActiveFromView,
-} from "./ViewMachine";
+import ViewMachine, { ViewEventSchema, viewSelectors } from "./ViewMachine";
 
 type SavedApp = {
   // darkMode: boolean;
@@ -89,6 +81,7 @@ const AppMachine = createMachine(
           },
           core: {
             INVALID_GUESS: "view",
+            INCORRECT_GUESS: "view",
           },
         };
         const { origin = "" } = event;
@@ -117,7 +110,7 @@ export function selectGameState(state) {
 }
 
 export function selectDarkMode(state) {
-  return selectDarkModeFromView(selectViewState(state));
+  return viewSelectors.darkMode(selectViewState(state));
 }
 
 export function selectHardMode(state) {
@@ -125,11 +118,11 @@ export function selectHardMode(state) {
 }
 
 export function selectHighContrastMode(state) {
-  return selectHighContrastModeFromView(selectViewState(state));
+  return viewSelectors.highContrast(selectViewState(state));
 }
 
 export function selectDialog(state) {
-  return selectDialogFromView(selectViewState(state));
+  return viewSelectors.dialog(selectViewState(state));
 }
 
 export function selectHardModeCanBeChanged(state) {
@@ -141,12 +134,11 @@ export function selectLetterStatuses(state) {
 }
 
 export function selectInvalidGuessMessage(state) {
-  return selectInvalidGuessMessageFromView(selectViewState(state));
+  return viewSelectors.invalidGuessMessage(selectViewState(state));
 }
 
 export function selectInvalidGuessActive(state) {
-  console.log("selectInvalidGuessActiveFromView");
-  return selectInvalidGuessActiveFromView(selectViewState(state));
+  return viewSelectors.invalidGuessActive(selectViewState(state));
 }
 
 export default AppMachine;

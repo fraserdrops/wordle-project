@@ -1,10 +1,11 @@
+import { AnyStateMachine, createMachine, StateMachine } from "xstate";
 import { pure, send, sendParent } from "xstate/lib/actions";
 
 export const createSwitchboard = (
-  id,
+  id: string,
   makeWires: (
-    ctx,
-    event
+    ctx: any,
+    event: any
   ) => Record<string, Record<string, { target: string; type: string; args?: {} }>>
 ) =>
   pure((ctx, event: { type: string; origin?: string }) => {
@@ -22,3 +23,43 @@ export const createSwitchboard = (
 
     return send({ ...event, type, origin: "", ...args }, { to: target });
   });
+
+type Components = Array<{ id: string; src: AnyStateMachine }>;
+type InvokedServices = Array<{ id: string; src: AnyStateMachine }>;
+
+export const createCompoundComponent = ({
+  id,
+  components,
+  makeWires,
+}: {
+  id: string;
+  components: Components;
+  makeWires: (
+    ctx: any,
+    event: any
+  ) => Record<string, Record<string, { target: string; type: string; args?: {} }>>;
+}): AnyStateMachine => {
+  const servicesToInvoke = mapComponentsToInvoked(components);
+  return createMachine(
+    {
+      id,
+      tsTypes: {} as import("./switchboard.typegen").Typegen0,
+      on: {
+        "*": {
+          actions: ["switchboard"],
+        },
+      },
+      invoke: servicesToInvoke,
+    },
+    {
+      actions: {
+        // @ts-ignore
+        switchboard: createSwitchboard(id, makeWires),
+      },
+    }
+  );
+};
+
+function mapComponentsToInvoked(components: Components): InvokedServices {
+  return components;
+}

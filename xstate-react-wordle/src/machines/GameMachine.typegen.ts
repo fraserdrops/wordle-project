@@ -2,11 +2,6 @@
 
 export interface Typegen0 {
   "@@xstate/typegen": true;
-  eventsCausingActions: {
-    addCurrentGuessToGuesses: "SUBMIT_GUESS";
-    deleteLetter: "DELETE_LETTER";
-    addLetterToGuess: "ADD_LETTER_TO_GUESS";
-  };
   internalEvents: {
     "xstate.init": { type: "xstate.init" };
   };
@@ -16,6 +11,12 @@ export interface Typegen0 {
     services: never;
     guards: never;
     delays: never;
+  };
+  eventsCausingActions: {
+    addCurrentGuessToGuesses: "SUBMIT_GUESS";
+    addLetterToGuess: "ADD_LETTER_TO_GUESS";
+    deleteLetter: "DELETE_LETTER";
+    emitEventIncorrectGuess: "INCORRECT_GUESS" | "SUBMIT_GUESS";
   };
   eventsCausingServices: {};
   eventsCausingGuards: {
@@ -26,28 +27,25 @@ export interface Typegen0 {
   matchesStates:
     | "round"
     | "round.playing"
-    | "round.playing.idle"
-    | "round.playing.checkingValidGuess"
     | "round.playing.checkingCorrectWord"
+    | "round.playing.checkingValidGuess"
+    | "round.playing.idle"
     | "round.roundComplete"
-    | "round.roundComplete.won"
     | "round.roundComplete.lost"
+    | "round.roundComplete.won"
     | {
         round?:
           | "playing"
           | "roundComplete"
           | {
-              playing?: "idle" | "checkingValidGuess" | "checkingCorrectWord";
-              roundComplete?: "won" | "lost";
+              playing?: "checkingCorrectWord" | "checkingValidGuess" | "idle";
+              roundComplete?: "lost" | "won";
             };
       };
-  tags: "roundComplete" | "won" | "lost";
+  tags: "lost" | "roundComplete" | "won";
 }
 export interface Typegen1 {
   "@@xstate/typegen": true;
-  eventsCausingActions: {
-    switchboard: "*";
-  };
   internalEvents: {
     "xstate.init": { type: "xstate.init" };
   };
@@ -57,6 +55,9 @@ export interface Typegen1 {
     services: never;
     guards: never;
     delays: never;
+  };
+  eventsCausingActions: {
+    switchboard: "*";
   };
   eventsCausingServices: {};
   eventsCausingGuards: {};

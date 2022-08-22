@@ -200,7 +200,7 @@ const GameMachine = createMachine(
                   target: "roundComplete",
                 },
                 {
-                  actions: ["addCurrentGuessToGuesses"],
+                  actions: ["addCurrentGuessToGuesses", "emitEventIncorrectGuess"],
                 },
               ],
               DELETE_LETTER: {
@@ -210,7 +210,9 @@ const GameMachine = createMachine(
                 cond: "maxWordSizeNotReached",
                 actions: ["addLetterToGuess"],
               },
-              INCORRECT_GUESS: {},
+              INCORRECT_GUESS: {
+                actions: ["emitEventIncorrectGuess"],
+              },
               CORRECT_GUESS: {
                 target: "#roundComplete.won",
               },
@@ -256,6 +258,7 @@ const GameMachine = createMachine(
         guesses: (ctx, event) => [...ctx.guesses, ctx.currentGuess],
         currentGuess: () => [],
       }),
+      emitEventIncorrectGuess: sendParent({ type: "INCORRECT_GUESS" }),
     },
     guards: {
       maxWordSizeNotReached: (ctx) => {
@@ -324,6 +327,12 @@ const CoreMachine = createMachine(
             type: "INVALID_GUESS",
           },
         },
+        gameStatus: {
+          INCORRECT_GUESS: {
+            target: "out",
+            type: "INCORRECT_GUESS",
+          },
+        },
       })),
     },
     guards: {},
@@ -351,6 +360,14 @@ export function selectHardModeCanBeChangedFromCore(state: any) {
 function selectHardModeCanBeChanged(state) {
   return state.context.guesses.length === 0 || state.hasTag("roundComplete");
 }
+
+export const coreSelectors = {
+  guesses: (state) => {
+    const gameState = selectGameStateFromCore(state);
+    return gameState.context.guesses;
+  },
+};
+
 export default CoreMachine;
 
 // find all the correct letters

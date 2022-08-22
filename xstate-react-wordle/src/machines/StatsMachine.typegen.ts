@@ -2,7 +2,6 @@
 
 export interface Typegen0 {
   "@@xstate/typegen": true;
-  eventsCausingActions: {};
   internalEvents: {
     "xstate.init": { type: "xstate.init" };
   };
@@ -13,13 +12,14 @@ export interface Typegen0 {
     guards: never;
     delays: never;
   };
+  eventsCausingActions: {};
   eventsCausingServices: {};
   eventsCausingGuards: {};
   eventsCausingDelays: {};
   matchesStates:
     | "copiedToClipboard"
-    | "copiedToClipboard.visible"
     | "copiedToClipboard.hidden"
-    | { copiedToClipboard?: "visible" | "hidden" };
+    | "copiedToClipboard.visible"
+    | { copiedToClipboard?: "hidden" | "visible" };
   tags: "showCopiedToClipboard";
 }
