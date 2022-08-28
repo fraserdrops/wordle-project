@@ -1,13 +1,12 @@
 // @ts-nocheck
 
 import { assign, createMachine, StateFrom } from "xstate";
-import { pure, send, sendParent } from "xstate/lib/actions";
+import { sendParent } from "xstate/lib/actions";
 import { WORDS } from "../constants/wordList";
 import { AppModel } from "../main";
 // import { AppModel } from "../main";
-import { createSwitchboard } from "../shared/switchboard";
+import { createCompoundComponent } from "../shared/switchboard";
 import { selectGameState } from "./AppMachine";
-import makeCreateEnumMachine from "./EnumMachine";
 import ToggleMachine from "./ToggleMachine";
 
 export type GameStatus = "playing" | "won" | "lost";
@@ -271,73 +270,49 @@ const GameMachine = createMachine(
   }
 );
 
-const CoreMachine = createMachine(
-  {
-    id: "core",
-
-    tsTypes: {} as import("./GameMachine.typegen").Typegen1,
-    schema: {
-      context: {} as ViewContext,
-      events: {} as ViewEventSchema,
+const CoreMachine = createCompoundComponent({
+  id: "core",
+  components: [
+    { id: "gameStatus", src: GameMachine },
+    { id: "hardMode", src: ToggleMachine },
+    { id: "validateGuess", src: validateGuess },
+  ],
+  makeWires: (ctx, event) => ({
+    // '' = external event
+    "": {
+      TOGGLE_HARD_MODE: { target: "hardMode", type: "TOGGLE" },
+      ADD_LETTER_TO_GUESS: {
+        target: "gameStatus",
+        type: "ADD_LETTER_TO_GUESS",
+      },
+      DELETE_LETTER: {
+        target: "gameStatus",
+        type: "DELETE_LETTER",
+      },
+      SUBMIT_GUESS: {
+        target: "validateGuess",
+        type: "VALIDATE_GUESS",
+      },
+      "*": { target: "out", type: event.type },
     },
-    context: {
-      invalidGuess: undefined,
-      congrats: undefined,
-      // todo: open dialog on app load
-    },
-    on: {
-      "*": {
-        actions: ["switchboard"],
+    validateGuess: {
+      VALID_GUESS: {
+        target: "gameStatus",
+        type: "SUBMIT_GUESS",
+      },
+      INVALID_GUESS: {
+        target: "out",
+        type: "INVALID_GUESS",
       },
     },
-    invoke: [
-      { id: "gameStatus", src: GameMachine },
-      { id: "hardMode", src: ToggleMachine },
-      { id: "validateGuess", src: validateGuess },
-    ],
-  },
-  {
-    actions: {
-      // @ts-ignore
-      switchboard: createSwitchboard("core", (ctx, event) => ({
-        // '' = external event
-        "": {
-          TOGGLE_HARD_MODE: { target: "hardMode", type: "TOGGLE" },
-          ADD_LETTER_TO_GUESS: {
-            target: "gameStatus",
-            type: "ADD_LETTER_TO_GUESS",
-          },
-          DELETE_LETTER: {
-            target: "gameStatus",
-            type: "DELETE_LETTER",
-          },
-          SUBMIT_GUESS: {
-            target: "validateGuess",
-            type: "VALIDATE_GUESS",
-          },
-          "*": { target: "out", type: event.type },
-        },
-        validateGuess: {
-          VALID_GUESS: {
-            target: "gameStatus",
-            type: "SUBMIT_GUESS",
-          },
-          INVALID_GUESS: {
-            target: "out",
-            type: "INVALID_GUESS",
-          },
-        },
-        gameStatus: {
-          INCORRECT_GUESS: {
-            target: "out",
-            type: "INCORRECT_GUESS",
-          },
-        },
-      })),
+    gameStatus: {
+      INCORRECT_GUESS: {
+        target: "out",
+        type: "INCORRECT_GUESS",
+      },
     },
-    guards: {},
-  }
-);
+  }),
+});
 
 export function selectHardModeFromCore(state) {
   const hardModeComponent = state.children.hardMode;

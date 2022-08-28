@@ -1,5 +1,4 @@
-import { createMachine } from "xstate";
-import { pure, send } from "xstate/lib/actions";
+import { createCompoundComponent } from "../shared/switchboard";
 import CoreMachine, {
   RoundFrequency,
   selectGameStateFromCore,
@@ -28,74 +27,107 @@ type AppEventSchema =
   | { type: "NEW_ROUND_RANDOM_WORD" };
 type AppContext = SavedApp & {};
 
-const AppMachine = createMachine(
-  {
-    id: "app",
-    tsTypes: {} as import("./AppMachine.typegen").Typegen0,
-    schema: {
-      context: {} as AppContext,
-      events: {} as AppEventSchema,
+const AppMachine = createCompoundComponent({
+  id: "app",
+  components: [
+    {
+      id: "view",
+      src: ViewMachine,
     },
-    context: {},
-    invoke: [
-      {
-        id: "view",
-        src: ViewMachine,
-      },
-      {
-        id: "core",
-        src: CoreMachine,
-      },
-    ],
-    // type: "parallel",
-    on: {
-      "*": {
-        actions: ["switchboard"],
-      },
+    {
+      id: "core",
+      src: CoreMachine,
     },
+  ],
+  makeWires: (ctx, event: AppEventSchema) => {
+    return {
+      // '' = external event
+      "": {
+        KEYPRESS: { target: "view" },
+        TOGGLE_DARK_MODE: { target: "view" },
+        TOGGLE_HIGH_CONTRAST_MODE: { target: "view" },
+        TOGGLE_HARD_MODE: { target: "core" },
+        OPEN_DIALOG: { target: "view" },
+        CLOSE_DIALOG: { target: "view" },
+        CLEAR_LOCAL_STORAGE: { target: "view" },
+        NEW_ROUND_CUSTOM_WORD: { target: "core" },
+        UPDATE_ROUND_FREQUENCY: { target: "core" },
+        NEW_ROUND_RANDOM_WORD: { target: "core" },
+        ADD_LETTER_TO_GUESS: { target: "core" },
+      },
+      view: {
+        // "*": {target: "core"},
+        SUBMIT_GUESS: { target: "core" },
+        DELETE_LETTER: { target: "core" },
+        ADD_LETTER_TO_GUESS: { target: "core" },
+      },
+      core: {
+        INVALID_GUESS: { target: "view" },
+        INCORRECT_GUESS: { target: "view" },
+      },
+    };
   },
-  {
-    actions: {
-      switchboard: pure((ctx, event: AppEventSchema) => {
-        console.trace("switchboard", event);
-        const lookup: Record<string, Record<string, string>> = {
-          // '' = external event
-          "": {
-            KEYPRESS: "view",
-            TOGGLE_DARK_MODE: "view",
-            TOGGLE_HIGH_CONTRAST_MODE: "view",
-            TOGGLE_HARD_MODE: "core",
-            OPEN_DIALOG: "view",
-            CLOSE_DIALOG: "view",
-            CLEAR_LOCAL_STORAGE: "view",
-            NEW_ROUND_CUSTOM_WORD: "core",
-            UPDATE_ROUND_FREQUENCY: "core",
-            NEW_ROUND_RANDOM_WORD: "core",
-            ADD_LETTER_TO_GUESS: "core",
-          },
-          view: {
-            // "*": "core",
-            SUBMIT_GUESS: "core",
-            DELETE_LETTER: "core",
-            ADD_LETTER_TO_GUESS: "core",
-          },
-          core: {
-            INVALID_GUESS: "view",
-            INCORRECT_GUESS: "view",
-          },
-        };
-        const { origin = "" } = event;
-        const target = lookup[origin][event.type] ?? lookup[origin]["*"];
-        if (!target) {
-          return [];
-        }
-        console.log("sending", { ...event, origin: "" }, "to", target);
-        return send({ ...event, origin: "" }, { to: target });
-      }),
-    },
-    guards: {},
-  }
-);
+});
+
+// const AppMachine = createMachine(
+//   {
+//     id: "app",
+//     tsTypes: {} as import("./AppMachine.typegen").Typegen0,
+//     schema: {
+//       context: {} as AppContext,
+//       events: {} as AppEventSchema,
+//     },
+//     context: {},
+//     invoke: [
+//       {
+//         id: "view",
+//         src: ViewMachine,
+//       },
+//       {
+//         id: "core",
+//         src: CoreMachine,
+//       },
+//     ],
+//     // type: "parallel",
+//     on: {
+//       "*": {
+//         actions: ["switchboard"],
+//       },
+//     },
+//   },
+//   {
+//     actions: {
+//       switchboard: createSwitchboard("app", (ctx, event: AppEventSchema) => {
+//         return {
+//           // '' = external event
+//           "": {
+//             KEYPRESS: { target: "view" },
+//             TOGGLE_DARK_MODE: { target: "view" },
+//             TOGGLE_HIGH_CONTRAST_MODE: { target: "view" },
+//             TOGGLE_HARD_MODE: { target: "core" },
+//             OPEN_DIALOG: { target: "view" },
+//             CLOSE_DIALOG: { target: "view" },
+//             CLEAR_LOCAL_STORAGE: { target: "view" },
+//             NEW_ROUND_CUSTOM_WORD: { target: "core" },
+//             UPDATE_ROUND_FREQUENCY: { target: "core" },
+//             NEW_ROUND_RANDOM_WORD: { target: "core" },
+//             ADD_LETTER_TO_GUESS: { target: "core" },
+//           },
+//           view: {
+//             // "*": {target: "core"},
+//             SUBMIT_GUESS: { target: "core" },
+//             DELETE_LETTER: { target: "core" },
+//             ADD_LETTER_TO_GUESS: { target: "core" },
+//           },
+//           core: {
+//             INVALID_GUESS: { target: "view" },
+//             INCORRECT_GUESS: { target: "view" },
+//           },
+//         };
+//       }),
+//     },
+//   }
+// );
 
 export function selectViewState(state) {
   return state.children["view"].state;

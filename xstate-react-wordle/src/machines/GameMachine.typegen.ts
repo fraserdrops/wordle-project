@@ -44,24 +44,3 @@ export interface Typegen0 {
       };
   tags: "lost" | "roundComplete" | "won";
 }
-export interface Typegen1 {
-  "@@xstate/typegen": true;
-  internalEvents: {
-    "xstate.init": { type: "xstate.init" };
-  };
-  invokeSrcNameMap: {};
-  missingImplementations: {
-    actions: never;
-    services: never;
-    guards: never;
-    delays: never;
-  };
-  eventsCausingActions: {
-    switchboard: "*";
-  };
-  eventsCausingServices: {};
-  eventsCausingGuards: {};
-  eventsCausingDelays: {};
-  matchesStates: undefined;
-  tags: never;
-}

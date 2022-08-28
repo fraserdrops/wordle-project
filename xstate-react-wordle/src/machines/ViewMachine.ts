@@ -1,6 +1,6 @@
 import { assign, createMachine } from "xstate";
 import { pure, send, sendParent } from "xstate/lib/actions";
-import { createSwitchboard } from "../shared/switchboard";
+import { createSwitchboard, createCompoundComponent } from "../shared/switchboard";
 import { isLetter } from "../shared/util";
 import makeCreateEnumMachine from "./EnumMachine";
 import { coreSelectors, InvalidGuessInfo } from "./GameMachine";
@@ -140,94 +140,72 @@ const InvalidGuessMachine = createMachine(
   }
 );
 
-const ViewMachine = createMachine(
-  {
-    id: "view",
-    tsTypes: {} as import("./ViewMachine.typegen").Typegen2,
-    schema: {
-      context: {} as ViewContext,
-      events: {} as ViewEventSchema,
+// states: {
+//   copiedToClipboard: {
+//     states: {
+//       visible: {
+//         tags: ["showCopiedToClipboard"],
+//       },
+//       hidden: {},
+//     },
+//   },
+//   round: {},
+//   guessResult: {
+//     states: {
+//       idle: {},
+//       revealing: {
+//         tags: ["revealGuessResult"],
+//       },
+//     },
+//   },
+// },
+
+const ViewMachine = createCompoundComponent({
+  id: "view",
+  components: [
+    { id: "keypressHandler", src: keypressHandler },
+    { id: "darkMode", src: ToggleMachine },
+    { id: "highContrast", src: ToggleMachine },
+    { id: "invalidGuess", src: InvalidGuessMachine },
+    {
+      id: "dialogs",
+      src: makeCreateEnumMachine({
+        vals: ["stats", "help", "settings", "closed"],
+        initial: "closed",
+      }),
     },
-    context: {
-      invalidGuess: undefined,
-      congrats: undefined,
-      // todo: open dialog on app load
-    },
-    type: "parallel",
-    on: {
-      "*": {
-        actions: ["switchboard"],
+    { id: "revealGuess", src: RevealGuess },
+  ],
+  makeWires: (ctx, event) => ({
+    // '' = external event
+    "": {
+      KEYPRESS: { target: "keypressHandler", type: "KEYPRESS" },
+      TOGGLE_DARK_MODE: { target: "darkMode", type: "TOGGLE" },
+      TOGGLE_HIGH_CONTRAST_MODE: { target: "highContrast", type: "TOGGLE" },
+      OPEN_DIALOG: {
+        target: "dialogs",
+        type: "CHANGE_ACTIVE_VAL",
+        args: { val: event.dialog },
       },
-    },
-    invoke: [
-      { id: "keypressHandler", src: keypressHandler },
-      { id: "darkMode", src: ToggleMachine },
-      { id: "highContrast", src: ToggleMachine },
-      { id: "invalidGuess", src: InvalidGuessMachine },
-      {
-        id: "dialogs",
-        src: makeCreateEnumMachine({
-          vals: ["stats", "help", "settings", "closed"],
-          initial: "closed",
-        }),
+      CLOSE_DIALOG: { target: "dialogs", type: "CHANGE_ACTIVE_VAL", args: { val: "closed" } },
+      ADD_LETTER_TO_GUESS: { target: "core", type: "ADD_LETTER_TO_GUESS" },
+      INVALID_GUESS: {
+        target: "invalidGuess",
+        type: "INVALID_GUESS",
       },
-      { id: "revealGuess", src: RevealGuess },
-    ],
-    states: {
-      copiedToClipboard: {
-        states: {
-          visible: {
-            tags: ["showCopiedToClipboard"],
-          },
-          hidden: {},
-        },
+      INCORRECT_GUESS: {
+        target: "revealGuess",
+        type: "REVEAL_GUESS",
       },
-      round: {},
-      guessResult: {
-        states: {
-          idle: {},
-          revealing: {
-            tags: ["revealGuessResult"],
-          },
-        },
-      },
+      "*": { target: "out", type: event.type },
     },
-  },
-  {
-    actions: {
-      switchboard: createSwitchboard("view", (ctx, event) => ({
-        // '' = external event
-        "": {
-          KEYPRESS: { target: "keypressHandler", type: "KEYPRESS" },
-          TOGGLE_DARK_MODE: { target: "darkMode", type: "TOGGLE" },
-          TOGGLE_HIGH_CONTRAST_MODE: { target: "highContrast", type: "TOGGLE" },
-          OPEN_DIALOG: {
-            target: "dialogs",
-            type: "CHANGE_ACTIVE_VAL",
-            args: { val: event.dialog },
-          },
-          CLOSE_DIALOG: { target: "dialogs", type: "CHANGE_ACTIVE_VAL", args: { val: "closed" } },
-          ADD_LETTER_TO_GUESS: { target: "core", type: "ADD_LETTER_TO_GUESS" },
-          INVALID_GUESS: {
-            target: "invalidGuess",
-            type: "INVALID_GUESS",
-          },
-          INCORRECT_GUESS: {
-            target: "revealGuess",
-            type: "REVEAL_GUESS",
-          },
-          "*": { target: "out", type: event.type },
-        },
-        keypressHandler: {
-          SUBMIT_GUESS: { target: "out", type: event.type },
-          DELETE_LETTER: { target: "out", type: event.type },
-          ADD_LETTER_TO_GUESS: { target: "out", type: event.type },
-        },
-      })),
+    keypressHandler: {
+      SUBMIT_GUESS: { target: "out", type: event.type },
+      DELETE_LETTER: { target: "out", type: event.type },
+      ADD_LETTER_TO_GUESS: { target: "out", type: event.type },
     },
-    guards: {},
-  }
-);
+  }),
+});
 
 export const viewSelectors = {
   darkMode: (state) => {

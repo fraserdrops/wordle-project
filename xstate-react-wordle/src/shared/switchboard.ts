@@ -1,4 +1,4 @@
-import { AnyStateMachine, createMachine, StateMachine } from "xstate";
+import { AnyStateMachine, createMachine, EventObject } from "xstate";
 import { pure, send, sendParent } from "xstate/lib/actions";
 
 export const createSwitchboard = (
@@ -6,12 +6,16 @@ export const createSwitchboard = (
   makeWires: (
     ctx: any,
     event: any
-  ) => Record<string, Record<string, { target: string; type: string; args?: {} }>>
+  ) => Record<string, Record<string, { target: string; type?: string; args?: {} }>>
 ) =>
   pure((ctx, event: { type: string; origin?: string }) => {
     const wires = makeWires(ctx, event);
     const { origin = "" } = event;
-    const { target, type, args = {} } = wires[origin][event.type] ?? wires[origin]["*"];
+    const {
+      target,
+      type = event.type,
+      args = {},
+    } = wires[origin][event.type] ?? wires[origin]["*"];
 
     if (target === "out") {
       console.log("switchboard out", id, event);
@@ -27,7 +31,7 @@ export const createSwitchboard = (
 type Components = Array<{ id: string; src: AnyStateMachine }>;
 type InvokedServices = Array<{ id: string; src: AnyStateMachine }>;
 
-export const createCompoundComponent = ({
+export const createCompoundComponent = <EventSchema extends EventObject>({
   id,
   components,
   makeWires,
@@ -36,14 +40,19 @@ export const createCompoundComponent = ({
   components: Components;
   makeWires: (
     ctx: any,
-    event: any
+    event: EventSchema
   ) => Record<string, Record<string, { target: string; type: string; args?: {} }>>;
 }): AnyStateMachine => {
   const servicesToInvoke = mapComponentsToInvoked(components);
+
   return createMachine(
     {
       id,
       tsTypes: {} as import("./switchboard.typegen").Typegen0,
+      schema: {
+        events: {} as EventSchema,
+      },
+      // @ts-ignore
       on: {
         "*": {
           actions: ["switchboard"],
@@ -53,7 +62,6 @@ export const createCompoundComponent = ({
     },
     {
       actions: {
-        // @ts-ignore
         switchboard: createSwitchboard(id, makeWires),
       },
     }

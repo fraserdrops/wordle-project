@@ -17,7 +17,6 @@ export default function Grid() {
   const invalidGuessActive = useSelector(actorContext.appActorRef, selectInvalidGuessActive);
   const invalidGuessMessage = useSelector(actorContext.appActorRef, selectInvalidGuessMessage);
   const { guesses, maxGuesses, guessLength, currentGuess, targetWord } = gameState.context;
-  const { invalidGuess, congrats } = viewState.context;
 
   const emptyRows = Math.max(maxGuesses - guesses.length - 1, 0);
   const displayCurrentGuess = guesses.length < maxGuesses && currentGuess;
@@ -33,7 +32,7 @@ export default function Grid() {
       }}
     >
       {gameState.hasTag("lost") && <GameMessage message={targetWord} />}
-      {gameState.hasTag("won") && congrats && <GameMessage message={congrats} />}
+      {/* {gameState.hasTag("won") && congrats && <GameMessage message={congrats} />} */}
       {guesses.map((guess: Array<string>, index: number) => (
         <CompletedGuessRow guess={guess} key={index} targetWord={targetWord} />
       ))}
