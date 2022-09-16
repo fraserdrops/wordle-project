@@ -1,0 +1,242 @@
+.App {
+  text-align: center;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
+:root {
+  --header-bar-height: 51px;
+  --background-color: white;
+  --border-color: #d3d6da;
+  --default-cell-bg-color: white;
+  --default-cell-border-color: #d3d6da;
+  --default-cell-text-color: #d3d6da;
+  --unknown-cell-border-color: black;
+  --unknown-cell-text-color: black;
+  --unknown-cell-bg-color: white;
+  --absent-color: #787c7e;
+  --correct-color: #6aaa64;
+  --present-color: #c9b458;
+  --key-background: #e3e3e3;
+  --text-color: black;
+}
+
+[data-theme="dark"] {
+  --background-color: #121213;
+  --border-color: #3a3a3c;
+  --absent-color: #3a3a3c;
+  --key-background: #818384;
+  --text-color: white;
+  --unknown-cell-border-color: #565758;
+  --unknown-cell-text-color: var(--text-color);
+  --unknown-cell-bg-color: var(--background-color);
+}
+
+[data-contrast="high"] {
+  --correct-color: #f5793a;
+  --present-color: #85c0f9;
+}
+
+.next-round-countdown {
+  font-size: 34px;
+}
+
+button {
+  font-size: calc(10px + 2vmin);
+}
+
+#gameContainer {
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  width: 100%;
+  max-width: var(--game-max-width);
+  height: calc(100vh - var(--header-bar-height));
+}
+
+.word-too-short {
+  animation: shake 0.82s ease both;
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
+}
+.tile {
+  border: "2px solid #d3d6da";
+}
+
+.cell-reveal {
+  animation-duration: 0.35s;
+  animation-timing-function: linear;
+  animation-fill-mode: backwards;
+  /* background-color: orange; */
+}
+
+.cell-reveal > .tile-letter {
+  animation: offsetLetterFlip 0.35s linear;
+  animation-fill-mode: backwards;
+}
+
+.unknown {
+  background-color: var(--background-color);
+  border-color: var(--unknown-cell-border-color);
+  color: var(--text-color);
+}
+
+.key {
+  border: none;
+}
+
+.unknown.key {
+  background-color: var(--key-background);
+}
+
+.empty.tile {
+  border-color: var(--border-color);
+}
+
+.present {
+  background-color: var(--present-color);
+  border-color: var(--present-color);
+  color: white;
+}
+
+.absent {
+  background-color: var(--absent-color);
+  border-color: var(--absent-color);
+  color: white;
+}
+
+.correct {
+  background-color: var(--correct-color);
+  border-color: var(--correct-color);
+  color: white;
+}
+
+.cell-reveal.absent {
+  animation-name: revealAbsentCharCell;
+}
+
+.cell-reveal.correct {
+  animation-name: revealCorrectCharCell;
+}
+
+.cell-reveal.present {
+  animation-name: revealPresentCharCell;
+}
+
+@keyframes revealAbsentCharCell {
+  0% {
+    transform: rotateX(0deg);
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
+  }
+  50% {
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
+  }
+  50.1% {
+    background-color: var(--absent-color);
+    border-color: var(--absent-color);
+  }
+  100% {
+    transform: rotateX(180deg);
+  }
+}
+
+@keyframes revealCorrectCharCell {
+  0% {
+    transform: rotateX(0deg);
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
+  }
+  50% {
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
+  }
+  50.1% {
+    background-color: var(--correct-color);
+    border-color: var(--correct-color);
+  }
+  100% {
+    transform: rotateX(180deg);
+  }
+}
+
+@keyframes revealPresentCharCell {
+  0% {
+    transform: rotateX(0deg);
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
+  }
+  50% {
+    background-color: var(--unknown-cell-bg-color);
+    border-color: var(--unknown-cell-border-color);
+    color: var(--unknown-cell-text-color);
+  }
+  50.1% {
+    background-color: var(--present-color);
+    border-color: var(--present-color);
+  }
+  100% {
+    transform: rotateX(180deg);
+  }
+}
+
+/* Additional animation on the child div to avoid letters turning upside down/snapping back to upright visual glitch */
+@keyframes offsetLetterFlip {
+  0% {
+    transform: rotateX(0deg);
+  }
+  100% {
+    transform: rotateX(180deg);
+  }
+}
+
+.cell-fill-animation {
+  animation: onTypeCell linear;
+  animation-duration: 0.35s;
+}
+
+@keyframes onTypeCell {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
