@@ -28,13 +28,8 @@ export const createSwitchboard = (
     return send({ ...event, type, origin: "", ...args }, { to: target });
   });
 
-type Components = Array<{ id: string; component: Component }>;
+type Components = Array<{ id: string; src: AnyStateMachine }>;
 type InvokedServices = Array<{ id: string; src: AnyStateMachine }>;
-
-type ComponentSelectors = Record<string, Function>;
-type Schematic = AnyStateMachine;
-
-export type Component = [Schematic, ComponentSelectors?];
 
 export const createCompoundComponent = <EventSchema extends EventObject>({
   id,
@@ -47,10 +42,10 @@ export const createCompoundComponent = <EventSchema extends EventObject>({
     ctx: any,
     event: EventSchema
   ) => Record<string, Record<string, { target: string; type: string; args?: {} }>>;
-}): Component => {
+}): AnyStateMachine => {
   const servicesToInvoke = mapComponentsToInvoked(components);
 
-  const schematic = createMachine(
+  return createMachine(
     {
       id,
       tsTypes: {} as import("./switchboard.typegen").Typegen0,
@@ -71,31 +66,8 @@ export const createCompoundComponent = <EventSchema extends EventObject>({
       },
     }
   );
-
-  const selectors: ComponentSelectors = {};
-  components.forEach(({ id, component: [schematic, componentSelectors] }) => {
-    if (componentSelectors) {
-      Object.keys(componentSelectors).forEach((key) => {
-        selectors[key] = (state: any) => {
-          const childComponent = state.children[id];
-          const childSelector = componentSelectors[key];
-          return childSelector(childComponent.state);
-        };
-      });
-    }
-  });
-
-  return [schematic, selectors];
 };
 
 function mapComponentsToInvoked(components: Components): InvokedServices {
-  return components.map(({ id, component: [schematic, componentSelectors] }) => ({
-    id,
-    src: schematic,
-  }));
+  return components;
 }
-
-// function mapComponentsToSelectors(components: Components): InvokedServices {
-
-//   return components;
-// }

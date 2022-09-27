@@ -13,6 +13,7 @@
     "@mui/icons-material": "^5.6.2",
     "@mui/material": "^5.6.4",
     "@reduxjs/toolkit": "^1.8.1",
+    "@xstate/inspect": "^0.7.0",
     "react": "^18.0.0",
     "react-countdown": "^2.3.2",
     "react-dom": "^18.0.0",

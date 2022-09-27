@@ -1,10 +1,9 @@
 import { assign, createMachine } from "xstate";
-import { sendParent } from "xstate/lib/actions";
-import { Component, createCompoundComponent } from "../shared/switchboard";
+import { pure, send, sendParent } from "xstate/lib/actions";
+import { createSwitchboard, createCompoundComponent } from "../shared/switchboard";
 import { isLetter } from "../shared/util";
-import { AppSelectors } from "./AppMachine";
 import makeCreateEnumMachine from "./EnumMachine";
-import { InvalidGuessInfo } from "./GameMachine";
+import { coreSelectors, InvalidGuessInfo } from "./GameMachine";
 import ToggleMachine from "./ToggleMachine";
 
 export type Dialogs = "stats" | "help" | "settings";
@@ -63,8 +62,6 @@ const keypressHandler = (ctx, event) => (callback, onReceive) => {
     }
   });
 };
-
-const keypressComponent: Component = [keypressHandler];
 
 type RevealGuessSchema = { type: "REVEAL_GUESS"; message: string } | { type: "__FLUSH_UPDATE__" };
 const RevealGuess = createMachine(
@@ -162,77 +159,22 @@ const InvalidGuessMachine = createMachine(
 //     },
 //   },
 // },
-const darkModeComponent: Component = [
-  ToggleMachine,
-  {
-    darkMode: (state) => {
-      state.matches("on");
-    },
-  },
-];
 
-const highContrastComponent: Component = [
-  ToggleMachine,
-  {
-    highContrast: (state) => {
-      return state.matches("on");
-    },
-  },
-];
-
-const invalidGuessComponent: Component = [
-  InvalidGuessMachine,
-  {
-    invalidGuessMessage: (state) => {
-      return state.context.message;
-    },
-    invalidGuessActive: (state) => {
-      return state.matches("active");
-    },
-  },
-];
-
-const dialogsComponent: Component = [
-  makeCreateEnumMachine({
-    vals: ["stats", "help", "settings", "closed"],
-    initial: "closed",
-  }),
-  {
-    dialog: (state) => {
-      return state.value;
-    },
-  },
-];
-
-const revealGuessComponent: Component = [
-  RevealGuess,
-  {
-    guesses: (state) => {
-      // we want the view to select the guesses that it needs to display
-      // and it needs to handle 'revealing' a guess that's just been submitted
-      // the core model instantly commits this guess, but we don't want to commit it
-      // until it's been revealed, hence the view lags behind the core model
-      // essentially, we just keep a pointer to the last guess the view h
-      const revealGuessComponent = state.children.revealGuess;
-      const guessCount = selectGuessCount(revealGuessComponent.state);
-      const coreGuesses = AppSelectors.guesses;
-      return coreGuesses[guessCount];
-    },
-  },
-];
-
-const ViewComponent = createCompoundComponent({
+const ViewMachine = createCompoundComponent({
   id: "view",
   components: [
-    { id: "keypressHandler", component: keypressComponent },
-    { id: "darkMode", component: darkModeComponent },
-    { id: "highContrast", component: highContrastComponent },
-    { id: "invalidGuess", component: invalidGuessComponent },
+    { id: "keypressHandler", src: keypressHandler },
+    { id: "darkMode", src: ToggleMachine },
+    { id: "highContrast", src: ToggleMachine },
+    { id: "invalidGuess", src: InvalidGuessMachine },
     {
       id: "dialogs",
-      component: dialogsComponent,
+      src: makeCreateEnumMachine({
+        vals: ["stats", "help", "settings", "closed"],
+        initial: "closed",
+      }),
     },
-    { id: "revealGuess", component: revealGuessComponent },
+    { id: "revealGuess", src: RevealGuess },
   ],
   makeWires: (ctx, event) => ({
     // '' = external event
@@ -265,4 +207,59 @@ const ViewComponent = createCompoundComponent({
   }),
 });
 
-export default ViewComponent;
+export const viewSelectors = {
+  darkMode: (state) => {
+    const darkModeComponent = state.children.darkMode;
+    return selectDarkMode(darkModeComponent.state);
+  },
+  highContrast: (state) => {
+    const highContrastComponent = state.children.highContrast;
+    return selectHighContrastMode(highContrastComponent.state);
+  },
+  dialog: (state) => {
+    const dialogsComponent = state.children.dialogs;
+    return selectDialog(dialogsComponent.state);
+  },
+  invalidGuessMessage: (state) => {
+    const invalidGuessComponent = state.children.invalidGuess;
+    return selectInvalidGuessMessage(invalidGuessComponent.state);
+  },
+  invalidGuessActive: (state) => {
+    const invalidGuessComponent = state.children.invalidGuess;
+    return selectInvalidGuessActive(invalidGuessComponent.state);
+  },
+  guesses: (state) => {
+    // we want the view to select the guesses that it needs to display
+    // and it needs to handle 'revealing' a guess that's just been submitted
+    // the core model instantly commits this guess, but we don't want to commit it
+    // until it's been revealed, hence the view lags behind the core model
+    // essentially, we just keep a pointer to the last guess the view h
+    const revealGuessComponent = state.children.revealGuess;
+    const guessCount = selectGuessCount(revealGuessComponent.state);
+    const coreGuesses = coreSelectors.guesses;
+    return coreGuesses[guessCount];
+  },
+};
+
+function selectDarkMode(state) {
+  return state.matches("on");
+}
+
+function selectHighContrastMode(state) {
+  return state.matches("on");
+}
+
+function selectDialog(state) {
+  console.log(state.value);
+  return state.value;
+}
+
+function selectInvalidGuessMessage(state) {
+  return state.context.message;
+}
+
+function selectInvalidGuessActive(state) {
+  return state.matches("active");
+}
+
+export default ViewMachine;

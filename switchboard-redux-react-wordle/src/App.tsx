@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import "./App.css";
-import { useAppDispatch, useAppSelector } from "./app/hooks";
+import { useAppDispatch, useAppSelector, useAppSend } from "./app/hooks";
 import Grid from "./components/Grid";
 import HeaderBar from "./components/HeaderBar";
 import HelpDialog from "./components/HelpDialog";
@@ -11,13 +11,17 @@ import { handleKeyPress } from "./features/game/gameSlice";
 import { closeDialog, openDialogOnAppLoad, setOpenDialog } from "./features/view/viewSlice";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { red, blue } from "@mui/material/colors";
+import { interpret } from "xstate";
+import AppMachine from "./machines/AppMachine";
 
 function App() {
   const dispatch = useAppDispatch();
+  const send = useAppSend();
   const { openDialog, darkMode, highContrastMode } = useAppSelector((state) => state.viewState);
 
   const handleOpenDialog = (dialog: "stats" | "help" | "settings") => {
     dispatch(setOpenDialog({ dialog }));
+    send({ type: "OPEN_DIALOG", dialog });
   };
 
   const handleCloseDialog = () => {

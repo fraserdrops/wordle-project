@@ -3,10 +3,8 @@
 import { assign, createMachine, StateFrom } from "xstate";
 import { sendParent } from "xstate/lib/actions";
 import { WORDS } from "../constants/wordList";
-import { AppModel } from "../main";
-// import { AppModel } from "../main";
-import { Component, createCompoundComponent } from "../shared/switchboard";
-import { AppSelectors } from "./AppMachine";
+import { createCompoundComponent } from "../shared/switchboard";
+import { selectGameState } from "./AppMachine";
 import ToggleMachine from "./ToggleMachine";
 
 export type GameStatus = "playing" | "won" | "lost";
@@ -93,6 +91,10 @@ export function getLetterStatusesFromGuess(guess: Guess, targetWord: string) {
 
 export type LetterStatuses = Record<string, LetterStatus>;
 
+export function selectLetterStatusesFromCore(state) {
+  return selectLetterStatuses(selectGameStateFromCore(state));
+}
+
 /**
  * Returns the highest priority status that's been discovered for each letter
  * @param state redux state
@@ -131,8 +133,8 @@ export type RoundFrequency = "24hr" | "1min";
 
 const validateGuess = (ctx, event, meta) => (callback, onReceive) => {
   onReceive((event) => {
-    const { currentGuess, guesses, targetWord } = AppSelectors.gameState(AppModel.state).context;
-    const isHardMode = AppSelectors.hardMode(AppModel.state);
+    const { currentGuess, guesses, targetWord } = selectGameState(AppModel.state).context;
+    const isHardMode = selectHardMode(AppModel.state);
     const missingLetterInfo = guessContainsAllDiscoveredLetters(currentGuess, guesses, targetWord);
 
     let invalidGuess = false;
@@ -156,8 +158,6 @@ const validateGuess = (ctx, event, meta) => (callback, onReceive) => {
     }
   });
 };
-
-const ValidateGuessComponent: Component = [validateGuess];
 
 const GameMachine = createMachine(
   {
@@ -268,30 +268,12 @@ const GameMachine = createMachine(
   }
 );
 
-const GameStatusComponent: Component = [
-  GameMachine,
-  {
-    gameState: (state) => state,
-    letterStatuses: (state) => selectLetterStatuses(state),
-    guesses: (state) => state.context.guesses,
-    hardModeCanBeChanged: (state) =>
-      state.context.guesses.length === 0 || state.hasTag("roundComplete"),
-  },
-];
-
-const HardModeComponent: Component = [
-  ToggleMachine,
-  {
-    hardMode: (state) => state.matches("on"),
-  },
-];
-
 const CoreMachine = createCompoundComponent({
   id: "core",
   components: [
-    { id: "gameStatus", component: GameStatusComponent },
-    { id: "hardMode", component: HardModeComponent },
-    { id: "validateGuess", component: ValidateGuessComponent },
+    { id: "gameStatus", src: GameMachine },
+    { id: "hardMode", src: ToggleMachine },
+    { id: "validateGuess", src: validateGuess },
   ],
   makeWires: (ctx, event) => ({
     // '' = external event
@@ -329,6 +311,35 @@ const CoreMachine = createCompoundComponent({
     },
   }),
 });
+
+export function selectHardModeFromCore(state) {
+  const hardModeComponent = state.children.hardMode;
+  return selectHardMode(hardModeComponent.state);
+}
+
+function selectHardMode(state) {
+  return state.matches("on");
+}
+
+export function selectGameStateFromCore(state) {
+  return state.children.gameStatus.state;
+}
+
+// can't change hard mode during a round
+export function selectHardModeCanBeChangedFromCore(state: any) {
+  return selectHardModeCanBeChanged(selectGameStateFromCore(state));
+}
+
+function selectHardModeCanBeChanged(state) {
+  return state.context.guesses.length === 0 || state.hasTag("roundComplete");
+}
+
+export const coreSelectors = {
+  guesses: (state) => {
+    const gameState = selectGameStateFromCore(state);
+    return gameState.context.guesses;
+  },
+};
 
 export default CoreMachine;
 
